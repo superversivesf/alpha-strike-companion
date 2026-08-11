@@ -9,6 +9,8 @@ import sys
 sys.path.insert(0, os.path.dirname(__file__))
 import build_data as bd
 
+from PIL import Image
+
 FIXTURE_TRES = """[gd_resource type="Resource" script_class="UnitInfo" format=3]
 
 [ext_resource type="Script" path="res://UnitInfo.gd" id="1_cs3jr"]
@@ -211,11 +213,11 @@ class TestBuildEndToEnd(unittest.TestCase):
         with open(os.path.join(self.units_dir, "Aesir", "Aesir AES-1.tres"), "w", encoding="utf-8") as f:
             f.write(FIXTURE_TRES_JPG)
         with open(os.path.join(self.sprites_dir, "atlas-rg.png"), "wb") as f:
-            f.write(b"PNGDATA")
+            Image.new("RGB", (64, 64), (120, 40, 20)).save(f, "PNG")
         with open(os.path.join(self.sprites_dir, "pwwka-jfr.png"), "wb") as f:
-            f.write(b"PNGDATA")
+            Image.new("RGB", (64, 64), (20, 40, 120)).save(f, "PNG")
         with open(os.path.join(self.sprites_dir, "aesir-3145.jpg"), "wb") as f:
-            f.write(b"JPGDATA")
+            Image.new("RGB", (64, 64), (40, 120, 40)).save(f, "JPEG")
         with open(os.path.join(self.sprites_dir, "atlas-rg.png.import"), "w", encoding="utf-8") as f:
             f.write("ignored import metadata")
 
@@ -234,10 +236,12 @@ class TestBuildEndToEnd(unittest.TestCase):
         self.assertIn("atlas-as7-d", by_id)
         self.assertEqual(by_id["atlas-as7-d"]["pv"], 52)
         img_dir = os.path.join(self.site_dir, "data", "img")
-        self.assertTrue(os.path.exists(os.path.join(img_dir, "atlas-rg.png")))
-        self.assertTrue(os.path.exists(os.path.join(img_dir, "pwwka-jfr.png")))
-        self.assertTrue(os.path.exists(os.path.join(img_dir, "aesir-3145.jpg")))
+        self.assertTrue(os.path.exists(os.path.join(img_dir, "atlas-rg.webp")))
+        self.assertTrue(os.path.exists(os.path.join(img_dir, "pwwka-jfr.webp")))
+        self.assertTrue(os.path.exists(os.path.join(img_dir, "aesir-3145.webp")))
         self.assertFalse(os.path.exists(os.path.join(img_dir, "atlas-rg.png.import")))
+        self.assertEqual(by_id["atlas-as7-d"]["image"], "atlas-rg.webp")
+        self.assertEqual(by_id["aesir-aes-1"]["image"], "aesir-3145.webp")
 
     def test_sanity_check_fails_on_bad_units(self):
         bad = [{"id": "x", "armor": -1}]

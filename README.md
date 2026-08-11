@@ -18,6 +18,10 @@ npm install        # dev deps only (jsdom)
 npm run build:data # python3 tools/build_data.py → site/data/
 ```
 
+The build converts all artwork to WebP (quality 82) — ~32 MB total for the
+full 1568-image set, down from ~88 MB as PNG. Requires Pillow
+(`pip install pillow`).
+
 ## Run
 
 ```

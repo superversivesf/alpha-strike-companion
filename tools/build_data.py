@@ -7,11 +7,15 @@ import shutil
 import sys
 import unicodedata
 
+from PIL import Image
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ARCHIVE_UNITS = os.path.join(ROOT, "Alpha-Strike-Tool", "Units")
 ARCHIVE_SPRITES = os.path.join(ROOT, "Alpha-Strike-Tool", "Sprites", "Units")
 SITE_DATA = os.path.join(ROOT, "site", "data")
 SITE_IMG = os.path.join(SITE_DATA, "img")
+
+WEBP_QUALITY = 82
 
 KEY_RE = re.compile(r"^([A-Za-z_]+) = (.*)$")
 EXT_RES_RE = re.compile(r'\[ext_resource\s+type="Texture2D"\s+path="res://Sprites/Units/([^"]+)"\s+id="([^"]+)"\]')
@@ -147,6 +151,12 @@ def sanity_check(units, sprites_dir):
             )
 
 
+def to_webp(src, dst):
+    with Image.open(src) as im:
+        im = im.convert("RGB")
+        im.save(dst, "WEBP", quality=WEBP_QUALITY, method=6)
+
+
 def build(units_dir, sprites_dir, site_data_dir):
     image_set = set()
     units = []
@@ -168,7 +178,11 @@ def build(units_dir, sprites_dir, site_data_dir):
             continue
         src = os.path.join(sprites_dir, img)
         if os.path.exists(src):
-            shutil.copy2(src, os.path.join(site_data_dir, "img", img))
+            webp_name = os.path.splitext(img)[0] + ".webp"
+            to_webp(src, os.path.join(site_data_dir, "img", webp_name))
+            for u in units:
+                if u["image"] == img:
+                    u["image"] = webp_name
 
     with open(os.path.join(site_data_dir, "units.json"), "w", encoding="utf-8") as f:
         json.dump({"units": units}, f, ensure_ascii=False)

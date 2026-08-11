@@ -10,7 +10,7 @@ const unit = {
   size: 4, tmm: 1, move: "6", role: "Juggernaut", skill: 4,
   damage: { s: 5, m: 5, l: 2 }, overheat: 0,
   armor: 10, structure: 8, pv: 52,
-  abilities: ["AC2/2/-"], image: "atlas-rg.png",
+  abilities: ["AC2/2/-"], image: "atlas-rg.webp",
 };
 
 test("slugifyUnit produces lowercase dash id", () => {

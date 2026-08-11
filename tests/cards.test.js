@@ -9,7 +9,7 @@ const unit = {
   size: 4, tmm: 1, move: "6", role: "Juggernaut", skill: 4,
   damage: { s: 5, m: 5, l: 2 }, overheat: 0,
   armor: 3, structure: 2, pv: 52,
-  abilities: ["AC2/2/-", "IF1"], image: "atlas-rg.png",
+  abilities: ["AC2/2/-", "IF1"], image: "atlas-rg.webp",
 };
 
 function render(unit, entry) {
@@ -30,7 +30,7 @@ test("renderCard shows identity, stats, pv", () => {
 test("renderCard shows artwork when image present, placeholder when not", () => {
   const withImg = render(unit, createEntry(unit));
   assert.ok(withImg.querySelector(".card-art img"));
-  assert.equal(withImg.querySelector(".card-art img").getAttribute("src"), "data/img/atlas-rg.png");
+  assert.equal(withImg.querySelector(".card-art img").getAttribute("src"), "data/img/atlas-rg.webp");
   const noImg = render({ ...unit, image: "" }, createEntry(unit));
   assert.ok(noImg.querySelector(".card-art .placeholder"));
 });
