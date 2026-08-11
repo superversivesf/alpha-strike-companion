@@ -278,6 +278,7 @@ export function renderCard(unit, entry = createEntry(unit)) {
   const card = document.createElement("article");
   card.className = "card";
   card.dataset.unitId = unit.id;
+  card.dataset.entryId = entry.id;
 
   const head = document.createElement("header");
   head.className = "card-head";

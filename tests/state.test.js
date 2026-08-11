@@ -21,9 +21,12 @@ test("slugifyUnit produces lowercase dash id", () => {
   assert.equal(slugifyUnit("Ara\u00f1a", "ARA-S-1 MilitiaMech"), "arana-ara-s-1-militiamech");
 });
 
-test("createEntry starts clean", () => {
+test("createEntry starts clean with unique id", () => {
   const e = createEntry(unit);
   assert.equal(e.unitId, "atlas-as7-d");
+  assert.ok(typeof e.id === "string" && e.id.length > 0);
+  const e2 = createEntry(unit);
+  assert.notEqual(e.id, e2.id);
   assert.equal(e.armorDamage, 0);
   assert.equal(e.structDamage, 0);
   assert.equal(e.heat, 0);
@@ -163,4 +166,5 @@ test("isEntryValid enforces bounds", () => {
   assert.equal(isEntryValid({ ...e, crits: { ...e.crits, weapons: 5 } }, unit), false);
   assert.equal(isEntryValid({ ...e, skill: 7 }, unit), false);
   assert.equal(isEntryValid({ ...e, skill: "3" }, unit), false);
+  assert.equal(isEntryValid({ ...e, id: "" }, unit), false);
 });

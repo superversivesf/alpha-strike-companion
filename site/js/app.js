@@ -132,7 +132,7 @@ function renderRoster() {
   const byGroup = new Map();
   const ungrouped = [];
   for (const entry of _state.roster) {
-    const g = _state.groups.find(grp => grp.unitIds.includes(entry.unitId));
+    const g = _state.groups.find(grp => grp.unitIds.includes(entry.id));
     if (g) {
       if (!byGroup.has(g.id)) byGroup.set(g.id, []);
       byGroup.get(g.id).push(entry);
@@ -154,10 +154,10 @@ function renderRoster() {
   empty.style.display = _state.roster.length ? "none" : "";
 }
 
-function updateEntry(unitId, mutate) {
-  const idx = _state.roster.findIndex(e => e.unitId === unitId);
+function updateEntry(entryId, mutate) {
+  const idx = _state.roster.findIndex(e => e.id === entryId);
   if (idx === -1) return;
-  const unit = _unitById.get(unitId);
+  const unit = _unitById.get(_state.roster[idx].unitId);
   const next = mutate(_state.roster[idx], unit);
   _state = { ..._state, roster: _state.roster.map((e, i) => (i === idx ? next : e)) };
   persist();
@@ -200,10 +200,10 @@ export async function init({ doc, storage }) {
     let groups = _state.groups;
     const target = targetGroupFor(unit);
     if (target) {
-      groups = groups.map(g => (g.id === target.id ? addUnitToGroup(g, entry.unitId) : g));
+      groups = groups.map(g => (g.id === target.id ? addUnitToGroup(g, entry.id) : g));
     } else {
       const g = createGroup(unit);
-      g.unitIds = [entry.unitId];
+      g.unitIds = [entry.id];
       groups = [...groups, g];
     }
     _state = { ..._state, roster: [..._state.roster, entry], groups };
@@ -214,37 +214,37 @@ export async function init({ doc, storage }) {
   el("roster").addEventListener("click", e => {
     const card = e.target.closest(".card");
     if (card) {
-      const unitId = card.dataset.unitId;
+      const entryId = card.dataset.entryId;
       if (e.target.dataset.action === "remove") {
         _state = {
           ..._state,
-          roster: _state.roster.filter(entry => entry.unitId !== unitId),
-          groups: _state.groups.map(g => removeUnitFromGroup(g, unitId)),
+          roster: _state.roster.filter(entry => entry.id !== entryId),
+          groups: _state.groups.map(g => removeUnitFromGroup(g, entryId)),
         };
         persist();
         renderRoster();
         return;
       }
       if (e.target.dataset.action === "armor") {
-        updateEntry(unitId, (entry, unit) => damageArmor(entry, unit, Number(e.target.dataset.index)));
+        updateEntry(entryId, (entry, unit) => damageArmor(entry, unit, Number(e.target.dataset.index)));
         return;
       }
       if (e.target.dataset.action === "struct") {
-        updateEntry(unitId, (entry, unit) => damageStruct(entry, unit, Number(e.target.dataset.index)));
+        updateEntry(entryId, (entry, unit) => damageStruct(entry, unit, Number(e.target.dataset.index)));
         return;
       }
       if (e.target.dataset.heat) {
-        updateEntry(unitId, entry => setHeat(entry, e.target.dataset.heat === "S" ? "S" : Number(e.target.dataset.heat)));
+        updateEntry(entryId, entry => setHeat(entry, e.target.dataset.heat === "S" ? "S" : Number(e.target.dataset.heat)));
         return;
       }
       if (e.target.dataset.action === "set-skill") {
         const select = card.querySelector(".skill-select");
         if (!select) return;
-        updateEntry(unitId, entry => setSkill(entry, Number(select.value)));
+        updateEntry(entryId, entry => setSkill(entry, Number(select.value)));
         return;
       }
       if (e.target.dataset.crit) {
-        updateEntry(unitId, (entry, unit) => toggleCrit(entry, unit, e.target.dataset.crit, Number(e.target.dataset.index)));
+        updateEntry(entryId, (entry, unit) => toggleCrit(entry, unit, e.target.dataset.crit, Number(e.target.dataset.index)));
       }
       return;
     }

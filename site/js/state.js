@@ -38,10 +38,14 @@ export function critTypesForUnit(unit) {
   return isAerospaceUnit(unit) ? AEROSPACE_CRITS : GROUND_CRITS;
 }
 
+let _entrySeq = 0;
+
 export function createEntry(unit) {
   const crits = {};
   for (const type of CRIT_TYPES) crits[type] = 0;
+  _entrySeq += 1;
   return {
+    id: `e-${Date.now().toString(36)}-${_entrySeq}-${Math.random().toString(36).slice(2, 6)}`,
     unitId: unit.id,
     armorDamage: 0,
     structDamage: 0,
@@ -138,6 +142,7 @@ export function isGroupValid(group) {
 }
 
 export function isEntryValid(entry, unit) {
+  if (typeof entry.id !== "string" || !entry.id) return false;
   if (typeof entry.armorDamage !== "number" || entry.armorDamage < 0 || entry.armorDamage > unit.armor) return false;
   if (typeof entry.structDamage !== "number" || entry.structDamage < 0 || entry.structDamage > unit.structure) return false;
   if (!(entry.heat === 0 || entry.heat === 1 || entry.heat === 2 || entry.heat === 3 || entry.heat === "S")) return false;

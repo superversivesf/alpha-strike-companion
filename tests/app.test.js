@@ -107,6 +107,18 @@ test("set-skill fixes the skill and persists", async () => {
   assert.equal(saved.at(-1).roster[0].skillSet, true);
 });
 
+test("removing one duplicate unit keeps the other", async () => {
+  const { document } = await boot();
+  const first = document.querySelector("#picker-list li button");
+  first.dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
+  first.dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
+  assert.equal(document.querySelectorAll("#roster .card").length, 2);
+  const cards = document.querySelectorAll("#roster .card");
+  cards[0].querySelector(".card-remove").dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
+  assert.equal(document.querySelectorAll("#roster .card").length, 1);
+  assert.equal(document.querySelectorAll("#roster .group")[0].querySelectorAll(".card").length, 1);
+});
+
 test("picker toggle collapses the list", async () => {
   const { document } = await boot();
   const picker = document.getElementById("picker");
@@ -125,7 +137,7 @@ test("clear force empties roster and saves", async () => {
 
 test("import via file input renders imported roster", async () => {
   const { document, window } = await boot();
-  const importState = { roster: [{ unitId: "atlas-as7-d", armorDamage: 2, structDamage: 1, heat: 0, crits: { engine: 0, fireControl: 0, mp: 0, weapons: 0, thruster: 0, fuel: 0, crew: 0 } }] };
+  const importState = { roster: [{ id: "e-import-1", unitId: "atlas-as7-d", armorDamage: 2, structDamage: 1, heat: 0, crits: { engine: 0, fireControl: 0, mp: 0, weapons: 0, thruster: 0, fuel: 0, crew: 0 } }] };
   const file = new window.File([JSON.stringify(importState)], "test.json", { type: "application/json" });
   file.text = async () => JSON.stringify(importState);
   const input = document.getElementById("import-file");

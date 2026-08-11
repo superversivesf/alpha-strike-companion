@@ -48,9 +48,12 @@ export function sanitizeState(obj, unitById) {
       }
       const skill = typeof entry.skill === "number" ? Math.max(0, Math.min(6, Math.floor(entry.skill))) : (typeof unit.skill === "number" ? unit.skill : 4);
       const skillSet = Boolean(entry.skillSet);
-      return { unitId: entry.unitId, armorDamage, structDamage, heat, crits, skill, skillSet };
+      const id = typeof entry.id === "string" && entry.id
+        ? entry.id
+        : `e-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+      return { id, unitId: entry.unitId, armorDamage, structDamage, heat, crits, skill, skillSet };
     });
-  const rosterIds = new Set(roster.map(e => e.unitId));
+  const rosterIds = new Set(roster.map(e => e.id));
   const groups = Array.isArray(obj.groups)
     ? obj.groups
         .filter(g => isGroupValid(g))
