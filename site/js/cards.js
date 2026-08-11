@@ -58,12 +58,18 @@ function abilityTip(code) {
   return ABILITY_TIPS[key] || "Special ability — see Alpha Strike rules";
 }
 
+function addTip(el, text) {
+  if (!text) return;
+  el.classList.add("tip");
+  el.dataset.tip = text;
+}
+
 function statRow(label, value) {
   const row = document.createElement("div");
   row.className = "stat-row";
   const lab = document.createElement("b");
   lab.textContent = label;
-  lab.title = STAT_TIPS[label] || "";
+  addTip(lab, STAT_TIPS[label]);
   const val = document.createElement("span");
   val.textContent = value;
   row.append(lab, val);
@@ -86,7 +92,7 @@ function track(label, action, total, damage, tip) {
   const labelEl = document.createElement("div");
   labelEl.className = "track-label";
   labelEl.textContent = label;
-  if (tip) labelEl.title = tip;
+  addTip(labelEl, tip);
   const pipsEl = document.createElement("div");
   pipsEl.className = "pips";
   pipsEl.append(...pips);
@@ -110,7 +116,7 @@ export function renderCard(unit, entry = createEntry(unit)) {
   const pv = document.createElement("span");
   pv.className = "card-pv";
   pv.textContent = `PV ${unit.pv}`;
-  pv.title = "Point Value — Alpha Strike cost of the unit";
+  addTip(pv, "Point Value — Alpha Strike cost of the unit");
   const remove = document.createElement("button");
   remove.type = "button";
   remove.className = "card-remove";
@@ -150,7 +156,7 @@ export function renderCard(unit, entry = createEntry(unit)) {
   const heatLabel = document.createElement("div");
   heatLabel.className = "track-label";
   heatLabel.textContent = "HEAT";
-  heatLabel.title = "Heat level — click 1, 2, 3, or S (shutdown); click again to reset";
+  addTip(heatLabel, "Heat level — click 1, 2, 3, or S (shutdown); click again to reset");
   heat.append(heatLabel);
   for (const level of HEAT_LEVELS) {
     const btn = document.createElement("button");
@@ -170,7 +176,7 @@ export function renderCard(unit, entry = createEntry(unit)) {
   const critLabel = document.createElement("div");
   critLabel.className = "track-label";
   critLabel.textContent = "CRITS";
-  critLabel.title = "Critical hit slots — click to mark critical hits";
+  addTip(critLabel, "Critical hit slots — click to mark critical hits");
   const critGrid = document.createElement("div");
   critGrid.className = "crit-grid";
   for (let i = 0; i < CRIT_SLOTS; i++) {
@@ -190,7 +196,7 @@ export function renderCard(unit, entry = createEntry(unit)) {
     const chip = document.createElement("span");
     chip.className = "ability";
     chip.textContent = ability;
-    chip.title = abilityTip(ability);
+    addTip(chip, abilityTip(ability));
     abilities.append(chip);
   }
 

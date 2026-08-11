@@ -57,14 +57,14 @@ test("renderCard lays out details left, artwork right", () => {
 
 test("renderCard adds tooltips to stats, tracks, heat, crits, abilities", () => {
   const card = render(unit, createEntry(unit));
-  assert.ok(card.querySelector('.stat-row b[title="Size — the unit\'s size class (1–4)"]'));
-  assert.ok(card.querySelector('.track-label[title*="Armor points"]'));
-  assert.ok(card.querySelector('.track-label[title*="Structure points"]'));
-  assert.ok(card.querySelector('.track-label[title*="Heat level"]'));
-  assert.ok(card.querySelector('.track-label[title*="Critical hit slots"]'));
-  assert.ok(card.querySelector('.ability[title*="Autocannon"]'));
-  assert.ok(card.querySelector('.ability[title*="Indirect fire"]'));
-  assert.ok(card.querySelector('.card-pv[title*="Point Value"]'));
+  assert.ok(card.querySelector('.stat-row b.tip[data-tip*="Size"]'));
+  assert.ok(card.querySelector('.track-label.tip[data-tip*="Armor points"]'));
+  assert.ok(card.querySelector('.track-label.tip[data-tip*="Structure points"]'));
+  assert.ok(card.querySelector('.track-label.tip[data-tip*="Heat level"]'));
+  assert.ok(card.querySelector('.track-label.tip[data-tip*="Critical hit slots"]'));
+  assert.ok(card.querySelector('.ability.tip[data-tip*="Autocannon"]'));
+  assert.ok(card.querySelector('.ability.tip[data-tip*="Indirect fire"]'));
+  assert.ok(card.querySelector('.card-pv.tip[data-tip*="Point Value"]'));
 });
 
 test("renderCard shows artwork when image present, placeholder when not", () => {
