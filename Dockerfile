@@ -20,8 +20,12 @@ FROM nginx:alpine
 
 # Keep the cloned data archive in the image so the source data survives
 # even if the upstream repo is taken down (rebuilds from scratch would
-# otherwise be impossible).
+# otherwise be impossible). Disable with: --build-arg KEEP_ARCHIVE=0
+ARG KEEP_ARCHIVE=1
+
 COPY --from=data /build/Alpha-Strike-Tool /opt/alpha-strike-tool/
 
 COPY site/ /usr/share/nginx/html/
 COPY --from=data /build/site/data/ /usr/share/nginx/html/data/
+
+RUN if [ "$KEEP_ARCHIVE" != "1" ]; then rm -rf /opt/alpha-strike-tool; fi

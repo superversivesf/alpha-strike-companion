@@ -81,6 +81,13 @@ deliberate, so the source data survives even if the upstream repository is
 taken down (rebuilding from a fresh clone would otherwise be impossible).
 This adds ~490 MB to the image (~1 GB total).
 
+To build a slim image without the archive (data is still built and served,
+but the raw archive is discarded):
+
+```
+docker build --build-arg KEEP_ARCHIVE=0 -t alpha-strike-companion .
+```
+
 ## Test
 
 ```

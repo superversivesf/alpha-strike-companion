@@ -1,5 +1,8 @@
 services:
   alpha-strike:
-    build: .
+    build:
+      context: .
+      args:
+        KEEP_ARCHIVE: "1"
     ports:
       - "7332:80"
