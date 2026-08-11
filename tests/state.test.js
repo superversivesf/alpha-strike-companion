@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   slugifyUnit, createEntry, damageArmor, damageStruct,
-  setHeat, toggleCrit, isEntryValid,
+  setHeat, toggleCrit, isEntryValid, critTypesForUnit, tracksHeat,
 } from "../site/js/state.js";
 
 const unit = {
@@ -25,7 +25,7 @@ test("createEntry starts clean", () => {
   assert.equal(e.armorDamage, 0);
   assert.equal(e.structDamage, 0);
   assert.equal(e.heat, 0);
-  assert.deepEqual(e.crits, Array(12).fill(false));
+  assert.deepEqual(e.crits, { engine: 0, fireControl: 0, mp: 0, weapons: 0, thruster: 0, fuel: 0, crew: 0 });
 });
 
 test("damageArmor click semantics and clamping", () => {
@@ -57,12 +57,33 @@ test("setHeat cycles levels and resets on re-click", () => {
   e = setHeat(e, 3); assert.equal(e.heat, 3);
 });
 
-test("toggleCrit flips slot", () => {
+test("toggleCrit cycles markers with caps", () => {
   let e = createEntry(unit);
-  e = toggleCrit(e, 3);
-  assert.equal(e.crits[3], true);
-  e = toggleCrit(e, 3);
-  assert.equal(e.crits[3], false);
+  e = toggleCrit(e, "engine");
+  assert.equal(e.crits.engine, 1);
+  e = toggleCrit(e, "engine");
+  assert.equal(e.crits.engine, 2);
+  e = toggleCrit(e, "engine");
+  assert.equal(e.crits.engine, 0);
+  e = toggleCrit(e, "thruster");
+  assert.equal(e.crits.thruster, 1);
+  e = toggleCrit(e, "thruster");
+  assert.equal(e.crits.thruster, 0);
+});
+
+test("critTypesForUnit: ground vs aerospace", () => {
+  assert.deepEqual(critTypesForUnit({ type: "BM" }), ["engine", "fireControl", "mp", "weapons"]);
+  assert.deepEqual(critTypesForUnit({ type: "AF" }), ["engine", "fireControl", "weapons", "thruster", "fuel", "crew"]);
+  assert.deepEqual(critTypesForUnit({ type: "CV" }), ["engine", "fireControl", "mp", "weapons"]);
+});
+
+test("tracksHeat: only 'Mechs and Aerospace Fighters", () => {
+  assert.equal(tracksHeat({ type: "BM" }), true);
+  assert.equal(tracksHeat({ type: "IM" }), true);
+  assert.equal(tracksHeat({ type: "AF" }), true);
+  assert.equal(tracksHeat({ type: "CV" }), false);
+  assert.equal(tracksHeat({ type: "CI" }), false);
+  assert.equal(tracksHeat({ type: "BA" }), false);
 });
 
 test("isEntryValid enforces bounds", () => {
@@ -71,5 +92,6 @@ test("isEntryValid enforces bounds", () => {
   assert.equal(isEntryValid({ ...e, armorDamage: 11 }, unit), false);
   assert.equal(isEntryValid({ ...e, structDamage: 9 }, unit), false);
   assert.equal(isEntryValid({ ...e, heat: "X" }, unit), false);
-  assert.equal(isEntryValid({ ...e, crits: [true] }, unit), false);
+  assert.equal(isEntryValid({ ...e, crits: null }, unit), false);
+  assert.equal(isEntryValid({ ...e, crits: { ...e.crits, engine: 5 } }, unit), false);
 });

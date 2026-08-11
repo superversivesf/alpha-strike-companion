@@ -1,61 +1,124 @@
-import { createEntry, HEAT_LEVELS, CRIT_SLOTS } from "./state.js";
+import { createEntry, HEAT_LEVELS, critTypesForUnit, tracksHeat } from "./state.js";
 
 const STAT_TIPS = {
-  SZ: "Size — the unit's size class (1–4)",
-  TMM: "Target Movement Modifier — bonus to hit this unit when it moves",
-  MV: "Movement — inches per turn (j = jump, g = ground, a = air)",
-  Role: "Tactical role of the unit",
-  S: "Damage at short range",
-  M: "Damage at medium range",
-  L: "Damage at long range",
-  OV: "Overheat — extra damage dealt when heat is 2 or higher",
+  SZ: "Size — the unit's weight class: 1 (Light), 2 (Medium), 3 (Heavy), 4 (Assault)",
+  TMM: "Target Movement Modifier — added to the Target Number of attacks made against this unit when it uses its standard movement mode",
+  MV: "Movement — inches per turn. Suffixes: j = jump, t = tracked, w = wheeled, h = hover, v = VTOL, g = WiGE, n = naval, s = submersible, f = foot (infantry), a = aerospace thrust, m = motorized (infantry), i = airship",
+  Role: "Tactical role of the unit (Brawler, Sniper, Scout, Juggernaut, Striker, Skirmisher, etc.)",
+  S: "Damage delivered at Short range (0–6\")",
+  M: "Damage delivered at Medium range (7–12\")",
+  L: "Damage delivered at Long range (13–24\")",
+  OV: "Overheat Value — extra damage you may add to an attack by taking that much heat",
+};
+
+const CRIT_TIPS = {
+  engine: "Engine Hit — 'Mechs: +1 heat in the End Phase if it fired weapons; a 2nd Engine Hit destroys the unit. Vehicles: halve Move, TMM and damage; a 2nd destroys the unit",
+  fireControl: "Fire Control Hit — cumulative +2 Target Number for all subsequent weapon attacks",
+  mp: "MP Hit — halves all Move ratings and TMM (round down), minimum 2\" and TMM 0; at 0\" the unit is immobile",
+  weapons: "Weapon Hit — all damage values (including special abilities with damage) reduced by 1, minimum 0",
+  thruster: "Thruster Hit (aerospace) — loses 1 Thrust; at 0 Thrust the unit crashes and is destroyed. May only occur once",
+  fuel: "Fuel Hit (aerospace) — fuel tank hit; the unit crashes and is destroyed",
+  crew: "Crew Hit (aerospace) — 1st adds +2 to all attacks and control rolls; a 2nd kills the crew and the unit is destroyed",
 };
 
 const ABILITY_TIPS = {
-  ENE: "Energy weapons — no ammo required",
-  AC: "Autocannon — ballistic weapon",
-  IF: "Indirect fire — can fire over obstacles with a spotter",
-  LRM: "Long-range missiles",
-  SRM: "Short-range missiles",
-  REAR: "Rear-mounted weapons — can fire into the rear arc",
-  FLK: "Flak — bonus damage vs aerospace units",
-  HT: "Heat — extra damage vs infantry",
-  JMP: "Jump jets — can jump over terrain",
-  BOMB: "Bombing — aerospace bombing capability",
-  FUEL: "Fuel — fuel capacity in turns",
-  LAM: "Land-Air Mech — converts between mech and fighter modes",
-  SRC: "Special rules card — see the unit's special rules",
-  C3: "C3 computer — shares targeting data",
-  ECM: "Electronic countermeasures — disrupts enemy targeting",
-  AMS: "Anti-missile system — shoots down incoming missiles",
-  TUR: "Turret — can rotate to fire in any arc",
-  MEL: "Melee — physical attack capability",
-  STL: "Stealth — harder to hit at range",
-  TAG: "Target acquisition gear — designates targets for guided weapons",
-  NARC: "Narc beacon — homing beacon for missiles",
-  PRB: "Probe — detects hidden units",
-  RCN: "Recon — recon bonus",
-  MHQ: "Mobile HQ — command unit",
-  CP: "Command point — provides command bonuses",
-  AT: "Anti-tank — bonus vs vehicles",
-  CK: "Cargo — carries cargo",
-  LG: "Landing gear — can land",
-  SOA: "Squad — infantry squad",
-  TSM: "Triple-strength myomer — extra melee damage when hot",
-  VRTOL: "VTOL — vertical takeoff and landing",
-  WAT: "Water — amphibious",
-  WIG: "WIGE — ground effect vehicle",
-  OVL: "Overload — extra damage at the cost of heat",
-  RHS: "Reinforced structure — extra structure",
-  SLG: "Slug — ballistic slug",
-  XMEC: "Xenomech — alien mech",
-  SRCH: "Searchlight — illuminates targets",
-  RFA: "Rear fire arc — rear weapons",
+  AC: "Autocannon — may fire autocannons together as an alternative attack and use alternate AC munitions",
+  AFC: "Advanced Fire Control — IndustrialMechs/support vehicles with this do not suffer unit-type TN modifiers",
+  AM: "Anti-'Mech — infantry may make a special physical attack against ground units in base contact",
+  AMS: "Anti-Missile System — reduces damage by 1 (min 1) from IF/LRM/SRM attacks; front arc only unless in a turret",
+  AMP: "Amphibious — non-naval unit can move through water, paying 4\" per inch of water traversed",
+  ARM: "Armored Components — ignores the first critical hit chance rolled against it each scenario (then spent)",
+  ARS: "Armored Motive Systems — −1 modifier on Motive Systems Damage rolls",
+  ATMO: "Atmospheric — operates within an atmosphere; used to denote airships and atmosphere-capable craft",
+  BAR: "Barrier Armor Rating — substandard armor; attacks against it always trigger a critical hit check",
+  BFC: "Basic Fire Control — adds +1 TN to the unit's attacks (inferior targeting)",
+  BH: "Bloodhound Active Probe — enhanced PRB with 26\" range, immune to ECM/LECM (only AECM overwhelms it)",
+  BOMB: "Bomb — carries up to # bombs for bombing attacks",
+  BRA: "Ballistic-Reinforced Armor — halves damage from AC/FLK/IATM/IF/LRM/SRM attacks",
+  C3BSM: "C3 Boosted Master — boosted C3 network master; links up to 3 slaves, unaffected by most ECM",
+  C3BSS: "C3 Boosted Slave — boosted C3 network slave, unaffected by most ECM",
+  C3I: "C3 Improved — up to 6 units share targeting data with no master; cannot be shut down by losing one member",
+  C3M: "C3 Master — links up to 4 units into a targeting network (one must be a C3M)",
+  C3S: "C3 Slave — links into a C3 network under a master computer",
+  CAR: "Cargo — cargo space required by infantry/battle armor to be transported",
+  CASE: "Cellular Ammunition Storage — survives Ammo Hit crits but suffers 1 additional damage",
+  CASEII: "Cellular Ammunition Storage II — ignores Ammo Hit critical hits entirely",
+  CNARC: "Clan Narc — missile homing beacon launcher",
+  CR: "Critical-Resistant — −2 modifier on all critical hit rolls against this unit (1 or less = no crit)",
+  CT: "Cargo Transport, Tons — carries # tons of bulk cargo",
+  DRO: "Drone — unmanned unit that shuts down inside a hostile ECM field or if its control unit is eliminated",
+  ECM: "Electronic Countermeasures — 12\" radius that disrupts enemy C3, probes, Narc and stealth",
+  EE: "Elementary Engine — non-fusion engine (ICE); less explosion risk than ammo but more than fusion",
+  ENE: "Energy weapons only — has no ammo; ignores Ammo Hit critical hits",
+  ENG: "Engineering — can clear woods and rubble paths (see Saw)",
+  ES: "Ejection Seat — pilot may abandon the unit; auto-ejects on Ammo Hit without CASE",
+  FC: "Fuel Cell Engine — non-fusion engine",
+  FLK: "Flak — on a miss by 2 or less vs an airborne unit, deals FLK damage at that range instead",
+  FR: "Fire Resistant — unaffected by heat-causing weapons (HT)",
+  FUEL: "Fuel — fuel capacity for aerospace/airship operations",
+  HT: "Heat — adds heat to the target's heat scale in the End Phase; vs non-heat units it adds damage instead",
+  HTC: "Trailer Hitch — can tow other wheeled or tracked units and trailers",
+  IATM: "Improved ATM — may fire standard, HE, or ER missiles with special effects",
+  IF: "Indirect Fire — can attack targets without LOS, using a friendly spotter; damage in place of the normal attack",
+  IT: "Infantry Transport — carries up to # infantry/battle armor units",
+  JMPS: "Jump Jets, Strong — adds # to TMM when jumping; +1 DFA damage at 2+",
+  JMPW: "Jump Jets, Weak — subtracts # from TMM when jumping; −1 DFA damage at 2+",
+  LAM: "Land-Air Mech — converts between 'Mech and aerospace modes",
+  LECM: "Light ECM — ECM with a 2\" radius instead of 12\"",
+  LG: "Large — occupies a 2\" diameter area; additional movement/combat modifiers",
+  LMAS: "Light Mimetic Armor — if stationary, +2 TN to non-physical attacks against it",
+  LPRB: "Light Active Probe — PRB with 12\" range; detects hidden units",
+  LRM: "Long-Range Missiles — may fire as an alternative attack and use alternate LRM munitions",
+  LTAG: "Light Target Acquisition Gear — paints targets for guided weapons at Short range only",
+  MAS: "Mimetic Armor — if stationary, +3 TN to non-physical attacks against it",
+  MCS: "Magnetic Clamp System — ProtoMechs may ride on a BattleMech (max 2, 1 for UCS)",
+  MEC: "Mechanized — battle armor may ride on Omni-capable ground units",
+  MEL: "Melee — adds 1 damage on successful Melee-type physical attacks",
+  MFB: "Mobile Field Base — provides repair/maintenance bonuses between battles",
+  MHQ: "Mobile Headquarters — command coordination bonuses based on rating",
+  MSW: "Minesweeper — clears minefields in base contact; can fail and detonate them",
+  MTAS: "Magnetic Taser — taser weapon (see taser rules)",
+  NOVA: "NOVA Composite EW — combines ECM, PRB and a 3-unit C3i network",
+  OMNI: "Omni — may transport a single battle armor unit using mechanized rules",
+  ORO: "Off-Road — wheeled support vehicles may move off-paved terrain without penalty",
+  OVL: "Overheat Long — may apply OV damage to Long range as well as Short/Medium",
+  PAR: "Paratroopers — may dismount from airborne transports like jump infantry",
+  PNT: "Point Defense — automatically engages attacking missiles, including Arrow IV and capital missiles",
+  PRB: "Active Probe — 18\" range; confers Recon and detects hidden units",
+  RCA: "Reactive Armor — halves damage from ART/BOMB/MSL/FLK attacks",
+  RCN: "Recon — spotting/initiative bonuses in conjunction with MHQ",
+  REAR: "Rear-Firing Weapons — may attack targets outside the normal firing arc with +1 TN; reduces forward damage by the REAR damage",
+  REL: "Re-Engineered Lasers — negates reflective armor damage reduction",
+  RFA: "Reflective Armor — halves damage from ENE and HT attacks; vulnerable to physical attacks",
+  RSD: "Remote Sensor Dispenser — deploys stationary remote sensors",
+  SAW: "Saw — may forego its attack to clear an area of woods",
+  SEAL: "Environmental Sealing — operates in hostile environments (underwater, vacuum, etc.)",
+  SHLD: "BattleMech Shield — provides damage protection from one arc",
+  SNARC: "Standard Narc — missile homing beacon launcher",
+  SOA: "Space Operations Adaptation — can operate in vacuum but cannot fly in space",
+  SPC: "Spacecraft — aerospace craft capable of spaceflight",
+  SRCH: "Searchlight — ignores Target Number modifiers for darkness",
+  SRM: "Short-Range Missiles — may fire as an alternative attack and use alternate SRM munitions",
+  STL: "Stealth — +1 TN at Medium and +2 at Long range vs non-infantry; +1 Short/Medium, +2 Long vs battle armor",
+  TAG: "Target Acquisition Gear — designates targets for guided/artillery munitions at Short or Medium range",
+  TOR: "Torpedo — underwater weapon; full damage even vs submerged targets",
+  TSEMP: "TSEMP — targeted electromagnetic pulse; successful attack stuns the target",
+  TSM: "Triple-Strength Myomer — when overheated: +2\" move and +1 physical damage; can deliberately overheat at OV0",
+  TUR: "Turret — weapons with a 360-degree field of fire; turret damage values are given per range",
+  UMU: "Underwater Maneuvering Units — uses submersible movement rules while submerged",
+  VSTOL: "Very-Short Takeoff and Landing — lifts off and lands in less space than regular aerodyne units",
+  WAT: "Watchdog — treated as having both LPRB and ECM",
+  XMEC: "Extended Mechanized — battle armor may ride on any ground unit type",
 };
 
-function abilityTip(code) {
-  const key = code.replace(/[^A-Za-z]/g, "").slice(0, 3);
-  return ABILITY_TIPS[key] || "Special ability — see Alpha Strike rules";
+const FALLBACK_TIP = "Special ability — see the Alpha Strike Commander's Edition rulebook";
+
+export function abilityTip(code) {
+  const base = code.toUpperCase();
+  if (ABILITY_TIPS[base]) return ABILITY_TIPS[base];
+  const m = base.match(/^([A-Z]+)/);
+  if (m && ABILITY_TIPS[m[1]]) return ABILITY_TIPS[m[1]];
+  return FALLBACK_TIP;
 }
 
 function addTip(el, text) {
@@ -100,6 +163,16 @@ function track(label, action, total, damage, tip) {
   return wrap;
 }
 
+const CRIT_LABELS = {
+  engine: "ENGINE",
+  fireControl: "F.CONTROL",
+  mp: "MP",
+  weapons: "WEAPONS",
+  thruster: "THRUSTER",
+  fuel: "FUEL",
+  crew: "CREW",
+};
+
 export function renderCard(unit, entry = createEntry(unit)) {
   const card = document.createElement("article");
   card.className = "card";
@@ -116,7 +189,7 @@ export function renderCard(unit, entry = createEntry(unit)) {
   const pv = document.createElement("span");
   pv.className = "card-pv";
   pv.textContent = `PV ${unit.pv}`;
-  addTip(pv, "Point Value — Alpha Strike cost of the unit");
+  addTip(pv, "Point Value — the unit's cost when building a force");
   const remove = document.createElement("button");
   remove.type = "button";
   remove.className = "card-remove";
@@ -147,48 +220,53 @@ export function renderCard(unit, entry = createEntry(unit)) {
   const tracks = document.createElement("div");
   tracks.className = "card-tracks";
   tracks.append(
-    track("ARMOR", "armor", unit.armor, entry.armorDamage, "Armor points — click pips to mark damage"),
-    track("STRUCTURE", "struct", unit.structure, entry.structDamage, "Structure points — click pips to mark damage"),
+    track("ARMOR", "armor", unit.armor, entry.armorDamage, "Armor points — click pips to mark damage. Armor absorbs damage before Structure."),
+    track("STRUCTURE", "struct", unit.structure, entry.structDamage, "Structure points — click pips to mark damage. Any hit that damages Structure triggers a critical hit check (as does a natural 12 attack roll)."),
   );
-
-  const heat = document.createElement("div");
-  heat.className = "card-heat";
-  const heatLabel = document.createElement("div");
-  heatLabel.className = "track-label";
-  heatLabel.textContent = "HEAT";
-  addTip(heatLabel, "Heat level — click 1, 2, 3, or S (shutdown); click again to reset");
-  heat.append(heatLabel);
-  for (const level of HEAT_LEVELS) {
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "heat-btn";
-    btn.dataset.heat = String(level);
-    btn.textContent = String(level);
-    if (entry.heat === level) {
-      btn.classList.add("active");
-      if (level === "S") btn.classList.add("shutdown");
-    }
-    heat.append(btn);
-  }
 
   const crits = document.createElement("div");
   crits.className = "card-crits";
   const critLabel = document.createElement("div");
   critLabel.className = "track-label";
-  critLabel.textContent = "CRITS";
-  addTip(critLabel, "Critical hit slots — click to mark critical hits");
+  critLabel.textContent = "CRITICAL HITS";
+  addTip(critLabel, "Mark critical hits. Any hit that damages Structure — or any attack roll of natural 12 that hits — triggers a critical hit check. Each marker counts one hit; caps reflect destruction rules.");
   const critGrid = document.createElement("div");
   critGrid.className = "crit-grid";
-  for (let i = 0; i < CRIT_SLOTS; i++) {
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "crit-slot";
-    btn.dataset.crit = String(i);
-    btn.setAttribute("aria-label", `Crit slot ${i + 1}`);
-    if (entry.crits[i]) btn.classList.add("filled");
-    critGrid.append(btn);
+  for (const type of critTypesForUnit(unit)) {
+    const slot = document.createElement("button");
+    slot.type = "button";
+    slot.className = "crit-slot";
+    slot.dataset.crit = type;
+    slot.textContent = CRIT_LABELS[type];
+    const count = entry.crits[type] ?? 0;
+    if (count > 0) slot.classList.add("filled");
+    slot.dataset.count = String(count);
+    addTip(slot, `${CRIT_LABELS[type]} — ${CRIT_TIPS[type]}`);
+    critGrid.append(slot);
   }
   crits.append(critLabel, critGrid);
+
+  const heat = document.createElement("div");
+  heat.className = "card-heat";
+  if (tracksHeat(unit)) {
+    const heatLabel = document.createElement("div");
+    heatLabel.className = "track-label";
+    heatLabel.textContent = "HEAT";
+    addTip(heatLabel, "Heat level — 'Mechs and Aerospace Fighters track heat. Each OV point used adds 1 heat; at level 3+ you take damage; reaching S = Shutdown (immobile, TMM −4). Click a level; click again to reset.");
+    heat.append(heatLabel);
+    for (const level of HEAT_LEVELS) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "heat-btn";
+      btn.dataset.heat = String(level);
+      btn.textContent = String(level);
+      if (entry.heat === level) {
+        btn.classList.add("active");
+        if (level === "S") btn.classList.add("shutdown");
+      }
+      heat.append(btn);
+    }
+  }
 
   const abilities = document.createElement("footer");
   abilities.className = "card-abilities";
@@ -200,7 +278,7 @@ export function renderCard(unit, entry = createEntry(unit)) {
     abilities.append(chip);
   }
 
-  details.append(stats, tracks, heat, crits, abilities);
+  details.append(stats, tracks, crits, heat, abilities);
 
   const art = document.createElement("div");
   art.className = "card-art";

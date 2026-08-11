@@ -131,7 +131,7 @@ export async function init({ doc, storage }) {
       return;
     }
     if (e.target.dataset.crit) {
-      updateEntry(unitId, entry => toggleCrit(entry, Number(e.target.dataset.crit)));
+      updateEntry(unitId, entry => toggleCrit(entry, e.target.dataset.crit));
     }
   });
 

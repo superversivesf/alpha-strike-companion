@@ -10,7 +10,8 @@ const UNITS = [
   { id: slugifyUnit("ATLAS", "AS7-D"), class: "ATLAS", variant: "AS7-D", type: "BM", size: 4, tmm: 1, move: "6", role: "Juggernaut", skill: 4, damage: { s: 5, m: 5, l: 2 }, overheat: 0, armor: 10, structure: 8, pv: 52, abilities: [], image: "" },
 ];
 const unitById = new Map(UNITS.map(u => [u.id, u]));
-const GOOD = { roster: [{ unitId: "atlas-as7-d", armorDamage: 3, structDamage: 1, heat: 2, crits: Array(12).fill(false) }] };
+const CRITS0 = { engine: 0, fireControl: 0, mp: 0, weapons: 0, thruster: 0, fuel: 0, crew: 0 };
+const GOOD = { roster: [{ unitId: "atlas-as7-d", armorDamage: 3, structDamage: 1, heat: 2, crits: { ...CRITS0, weapons: 1 } }] };
 
 function freshLocalStorage() {
   const dom = new JSDOM("", { url: "http://localhost/" });
@@ -32,8 +33,8 @@ test("loadState returns default on missing and corrupt data", () => {
 
 test("validateState rejects bad entries", () => {
   assert.equal(validateState(GOOD, unitById), true);
-  assert.equal(validateState({ roster: [{ unitId: "nope", armorDamage: 0, structDamage: 0, heat: 0, crits: Array(12).fill(false) }] }, unitById), false);
-  assert.equal(validateState({ roster: [{ unitId: "atlas-as7-d", armorDamage: 99, structDamage: 0, heat: 0, crits: Array(12).fill(false) }] }, unitById), false);
+  assert.equal(validateState({ roster: [{ unitId: "nope", armorDamage: 0, structDamage: 0, heat: 0, crits: { ...CRITS0 } }] }, unitById), false);
+  assert.equal(validateState({ roster: [{ unitId: "atlas-as7-d", armorDamage: 99, structDamage: 0, heat: 0, crits: { ...CRITS0 } }] }, unitById), false);
   assert.equal(validateState({ roster: "nope" }, unitById), false);
   assert.equal(validateState(null, unitById), false);
 });
@@ -42,16 +43,17 @@ test("sanitizeState clamps and drops invalid", () => {
   const s = sanitizeState({
     roster: [
       { unitId: "atlas-as7-d", armorDamage: 99, structDamage: -2, heat: "X", crits: [true] },
-      { unitId: "ghost", armorDamage: 0, structDamage: 0, heat: 0, crits: Array(12).fill(false) },
-      { unitId: "atlas-as7-d", armorDamage: 4, structDamage: 2, heat: "S", crits: Array(12).fill(false).map((_, i) => i === 0) },
+      { unitId: "ghost", armorDamage: 0, structDamage: 0, heat: 0, crits: { ...CRITS0 } },
+      { unitId: "atlas-as7-d", armorDamage: 4, structDamage: 2, heat: "S", crits: { ...CRITS0, engine: 9, weapons: 2 } },
     ],
   }, unitById);
   assert.equal(s.roster.length, 2);
   assert.equal(s.roster[0].armorDamage, 10);
   assert.equal(s.roster[0].structDamage, 0);
   assert.equal(s.roster[0].heat, 0);
-  assert.equal(s.roster[0].crits.length, 12);
-  assert.equal(s.roster[1].crits[0], true);
+  assert.deepEqual(s.roster[0].crits, CRITS0);
+  assert.equal(s.roster[1].crits.engine, 2);
+  assert.equal(s.roster[1].crits.weapons, 2);
 });
 
 test("exportBlob produces filename and JSON text", () => {

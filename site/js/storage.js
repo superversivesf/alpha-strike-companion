@@ -1,4 +1,4 @@
-import { CRIT_SLOTS, isEntryValid } from "./state.js";
+import { CRIT_TYPES, CRIT_CAPS, isEntryValid } from "./state.js";
 
 export const STORAGE_KEY = "as-companion-state-v1";
 
@@ -36,7 +36,12 @@ export function sanitizeState(obj, unitById) {
       const armorDamage = Math.max(0, Math.min(unit.armor, Number(entry.armorDamage) || 0));
       const structDamage = Math.max(0, Math.min(unit.structure, Number(entry.structDamage) || 0));
       const heat = [0, 1, 2, 3, "S"].includes(entry.heat) ? entry.heat : 0;
-      const crits = Array.from({ length: CRIT_SLOTS }, (_, i) => Boolean(entry.crits && entry.crits[i]));
+      const crits = {};
+      for (const type of CRIT_TYPES) {
+        const v = entry.crits && entry.crits[type];
+        const n = typeof v === "number" ? Math.floor(v) : 0;
+        crits[type] = Math.max(0, Math.min(CRIT_CAPS[type], n));
+      }
       return { unitId: entry.unitId, armorDamage, structDamage, heat, crits };
     });
   return { roster };

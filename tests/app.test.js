@@ -86,9 +86,9 @@ test("heat, crit, and remove actions", async () => {
   const heatBtn = document.querySelector('#roster .heat-btn[data-heat="2"]');
   heatBtn.dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
   assert.ok(document.querySelector('#roster .heat-btn[data-heat="2"].active'));
-  const crit = document.querySelector('#roster .crit-slot[data-crit="4"]');
+  const crit = document.querySelector('#roster .crit-slot[data-crit="weapons"]');
   crit.dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
-  assert.ok(document.querySelector('#roster .crit-slot[data-crit="4"].filled'));
+  assert.ok(document.querySelector('#roster .crit-slot[data-crit="weapons"].filled'));
   document.querySelector('#roster .card-remove').dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
   assert.equal(document.querySelectorAll("#roster .card").length, 0);
   assert.equal(document.getElementById("roster-empty").style.display, "");
@@ -112,7 +112,7 @@ test("clear force empties roster and saves", async () => {
 
 test("import via file input renders imported roster", async () => {
   const { document, window } = await boot();
-  const importState = { roster: [{ unitId: "atlas-as7-d", armorDamage: 2, structDamage: 1, heat: 0, crits: Array(12).fill(false) }] };
+  const importState = { roster: [{ unitId: "atlas-as7-d", armorDamage: 2, structDamage: 1, heat: 0, crits: { engine: 0, fireControl: 0, mp: 0, weapons: 0, thruster: 0, fuel: 0, crew: 0 } }] };
   const file = new window.File([JSON.stringify(importState)], "test.json", { type: "application/json" });
   file.text = async () => JSON.stringify(importState);
   const input = document.getElementById("import-file");
