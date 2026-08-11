@@ -22,6 +22,8 @@ async function boot({ state = { roster: [] } } = {}) {
   const app = await import("../site/js/app.js");
   const saved = [];
   const storage = {
+    importState: () => ({}),
+    exportBlob: () => ({}),
     loadState: () => state,
     saveState: s => saved.push(s),
   };

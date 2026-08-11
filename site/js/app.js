@@ -3,6 +3,7 @@ import { renderCard } from "./cards.js";
 import {
   createEntry, damageArmor, damageStruct, setHeat, toggleCrit, slugifyUnit,
 } from "./state.js";
+import { makeStorage } from "./storage.js";
 
 const SAVE_DEBOUNCE_MS = 0;
 
@@ -78,6 +79,9 @@ export async function init({ doc, storage }) {
   const payload = await res.json();
   _units = payload.units;
   _unitById = new Map(_units.map(u => [u.id, u]));
+  if (!storage.importState) {
+    _storage = makeStorage(_unitById, _doc.defaultView.localStorage);
+  }
   _state = _storage.loadState() || { roster: [] };
 
   const typeFilter = el("type-filter");
@@ -172,17 +176,5 @@ export async function init({ doc, storage }) {
 }
 
 if (typeof window !== "undefined" && !window.__AS_MANUAL__) {
-  init({
-    doc: document,
-    storage: {
-      loadState: () => JSON.parse(localStorage.getItem("as-companion-state-v1") || "null"),
-      saveState: s => localStorage.setItem("as-companion-state-v1", JSON.stringify(s)),
-      exportBlob: s => ({ filename: "as-companion-state.json", text: JSON.stringify(s, null, 2) }),
-      importState: text => {
-        const s = JSON.parse(text);
-        if (!s || !Array.isArray(s.roster)) throw new Error("missing roster array");
-        return s;
-      },
-    },
-  });
+  init({ doc: document, storage: makeStorage(null, window.localStorage) });
 }
