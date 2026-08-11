@@ -155,7 +155,6 @@ h1, h2, h3 { font-family: var(--font-head); letter-spacing: 0.06em; }
   position: relative;
   flex: 0 0 600px;
   width: 600px;
-  height: 400px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -221,7 +220,7 @@ h1, h2, h3 { font-family: var(--font-head); letter-spacing: 0.06em; }
   width: 195px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 10px;
 }
 
 .card-art {
@@ -403,6 +402,7 @@ h1, h2, h3 { font-family: var(--font-head); letter-spacing: 0.06em; }
   border-radius: 4px;
   background: rgba(0, 0, 0, 0.18);
   padding: 6px 8px;
+  align-self: stretch;
 }
 .crit-grid { display: flex; flex-direction: column; gap: 3px; }
 .crit-row { display: flex; align-items: center; gap: 8px; }
