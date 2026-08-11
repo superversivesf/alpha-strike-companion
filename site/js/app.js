@@ -1,4 +1,4 @@
-import { filterUnits, uniqueTypes, uniqueValues } from "./search.js";
+import { filterUnits, uniqueTypes, uniqueValues, typeName } from "./search.js";
 import { renderCard } from "./cards.js";
 import { initTooltips } from "./tooltips.js";
 import {
@@ -117,7 +117,7 @@ function renderPicker() {
     label.textContent = `${unit.class} ${unit.variant}`;
     const typeTag = _doc.createElement("span");
     typeTag.className = "type";
-    typeTag.textContent = unit.type;
+    typeTag.textContent = typeName(unit.type);
     const pv = _doc.createElement("span");
     pv.className = "pv";
     pv.textContent = `PV ${unit.pv}`;
@@ -193,12 +193,17 @@ export async function init({ doc, storage }) {
   function populateFilter(select, values) {
     for (const v of values) {
       const opt = _doc.createElement("option");
-      opt.value = v;
-      opt.textContent = v;
+      if (typeof v === "object" && v !== null) {
+        opt.value = v.value;
+        opt.textContent = v.label;
+      } else {
+        opt.value = v;
+        opt.textContent = v;
+      }
       select.append(opt);
     }
   }
-  populateFilter(typeFilter, uniqueTypes(_units));
+  populateFilter(typeFilter, uniqueTypes(_units).map(t => ({ value: t, label: `${typeName(t)} (${t})` })));
   populateFilter(eraFilter, uniqueValues(_units, "era"));
   populateFilter(sideFilter, uniqueValues(_units, "tech"));
   populateFilter(roleFilter, uniqueValues(_units, "role"));

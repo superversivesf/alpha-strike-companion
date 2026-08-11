@@ -35,6 +35,8 @@ test("init loads units, populates filters and picker", async () => {
   const { document } = await boot();
   const typeOptions = [...document.querySelectorAll("#type-filter option")].map(o => o.value);
   assert.deepEqual(typeOptions, ["", "BM"]);
+  const typeLabels = [...document.querySelectorAll("#type-filter option")].map(o => o.textContent);
+  assert.deepEqual(typeLabels, ["All types", "BattleMech (BM)"]);
   const eraOptions = [...document.querySelectorAll("#era-filter option")].map(o => o.value);
   assert.deepEqual(eraOptions, ["", "Clan Invasion", "Star League"]);
   const sideOptions = [...document.querySelectorAll("#side-filter option")].map(o => o.value);
@@ -46,6 +48,7 @@ test("init loads units, populates filters and picker", async () => {
   const items = document.querySelectorAll("#picker-list li");
   assert.equal(items.length, 3);
   assert.match(items[0].textContent, /ATLAS/);
+  assert.match(items[0].textContent, /BattleMech/);
 });
 
 test("picker filters narrow the unit list", async () => {

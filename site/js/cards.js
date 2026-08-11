@@ -1,4 +1,5 @@
 import { createEntry, HEAT_LEVELS, critTypesForUnit, critCap, tracksHeat, isAerospaceUnit } from "./state.js";
+import { typeName } from "./search.js";
 
 const STAT_TIPS = {
   SZ: "Size — the unit's weight class: 1 (Light), 2 (Medium), 3 (Heavy), 4 (Assault)",
@@ -120,23 +121,6 @@ const ABILITY_TIPS = {
   VSTOL: "Very-Short Takeoff and Landing — lifts off and lands in less space than regular aerodyne units",
   WAT: "Watchdog — treated as having both LPRB and ECM",
   XMEC: "Extended Mechanized — battle armor may ride on any ground unit type",
-};
-
-const TYPE_TIPS = {
-  BM: "BattleMech",
-  IM: "IndustrialMech",
-  PM: "ProtoMech",
-  CV: "Combat Vehicle",
-  SV: "Support Vehicle",
-  AF: "Aerospace Fighter",
-  CF: "Conventional Fighter",
-  DS: "Spheroid DropShip",
-  DA: "Aerodyne DropShip",
-  SC: "Small Craft",
-  MS: "Mobile Structure",
-  CI: "Conventional Infantry",
-  BA: "Battle Armor",
-  UNK: "Unknown type",
 };
 
 const FALLBACK_TIP = "Special ability — see the Alpha Strike Commander's Edition rulebook";
@@ -310,7 +294,7 @@ export function renderCard(unit, entry = createEntry(unit)) {
   identity.className = "card-identity";
   identity.append(
     identityRow([
-      { label: "TP", value: unit.type, tip: "Type — unit classification", tipValue: TYPE_TIPS[unit.type] || "Unknown type" },
+      { label: "TP", value: unit.type, tip: "Type — unit classification", tipValue: typeName(unit.type) },
       { label: "SZ", value: unit.size, tip: STAT_TIPS.SZ },
       { label: "TMM", value: unit.tmm, tip: STAT_TIPS.TMM },
       { label: "MV", value: `${unit.move}"`, tip: STAT_TIPS.MV },
