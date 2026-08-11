@@ -86,9 +86,9 @@ test("heat, crit, and remove actions", async () => {
   const heatBtn = document.querySelector('#roster .heat-btn[data-heat="2"]');
   heatBtn.dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
   assert.ok(document.querySelector('#roster .heat-btn[data-heat="2"].active'));
-  const crit = document.querySelector('#roster .crit-slot[data-crit="weapons"]');
+  const crit = document.querySelector('#roster .crit-slot[data-crit="weapons"][data-index="0"]');
   crit.dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
-  assert.ok(document.querySelector('#roster .crit-slot[data-crit="weapons"].filled'));
+  assert.ok(document.querySelector('#roster .crit-slot[data-crit="weapons"][data-index="0"].filled'));
   document.querySelector('#roster .card-remove').dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
   assert.equal(document.querySelectorAll("#roster .card").length, 0);
   assert.equal(document.getElementById("roster-empty").style.display, "");

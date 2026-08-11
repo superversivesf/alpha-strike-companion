@@ -2,20 +2,24 @@ export const HEAT_LEVELS = [1, 2, 3, "S"];
 
 export const CRIT_TYPES = ["engine", "fireControl", "mp", "weapons", "thruster", "fuel", "crew"];
 
-export const CRIT_CAPS = {
-  engine: 2,
-  fireControl: 3,
-  mp: 3,
-  weapons: 3,
-  thruster: 1,
-  fuel: 1,
-  crew: 2,
-};
+const GROUND_CRIT_CAPS = { engine: 1, fireControl: 4, mp: 4, weapons: 4 };
+const AEROSPACE_CRIT_CAPS = { engine: 2, fireControl: 4, weapons: 4, thruster: 1, fuel: 1, crew: 2 };
 
 export const GROUND_CRITS = ["engine", "fireControl", "mp", "weapons"];
 export const AEROSPACE_CRITS = ["engine", "fireControl", "weapons", "thruster", "fuel", "crew"];
 
+const AEROSPACE_TYPES = ["AF", "CF", "DS", "DA", "SC"];
+
 export const HEAT_TRACKING_TYPES = ["BM", "IM", "AF"];
+
+export function isAerospaceUnit(unit) {
+  return AEROSPACE_TYPES.includes(unit.type);
+}
+
+export function critCap(unit, type) {
+  const caps = isAerospaceUnit(unit) ? AEROSPACE_CRIT_CAPS : GROUND_CRIT_CAPS;
+  return caps[type] ?? 3;
+}
 
 export function slugifyUnit(className, variant) {
   return `${className} ${variant}`
@@ -31,8 +35,7 @@ export function tracksHeat(unit) {
 }
 
 export function critTypesForUnit(unit) {
-  const aerospace = ["AF", "CF", "DS", "DA", "SC"].includes(unit.type);
-  return aerospace ? AEROSPACE_CRITS : GROUND_CRITS;
+  return isAerospaceUnit(unit) ? AEROSPACE_CRITS : GROUND_CRITS;
 }
 
 export function createEntry(unit) {
@@ -72,10 +75,12 @@ export function setHeat(entry, level) {
   return { ...entry, heat: entry.heat === level ? 0 : level };
 }
 
-export function toggleCrit(entry, type) {
-  const cap = CRIT_CAPS[type] ?? 3;
+export function toggleCrit(entry, unit, type, index) {
+  const cap = critCap(unit, type);
+  if (index < 0 || index >= cap) return entry;
   const current = entry.crits[type] ?? 0;
-  const next = (current + 1) % (cap + 1);
+  const target = index + 1;
+  const next = current === target ? current - 1 : target;
   return { ...entry, crits: { ...entry.crits, [type]: next } };
 }
 
@@ -86,7 +91,7 @@ export function isEntryValid(entry, unit) {
   if (!entry.crits || typeof entry.crits !== "object") return false;
   for (const type of CRIT_TYPES) {
     const v = entry.crits[type];
-    if (typeof v !== "number" || v < 0 || v > (CRIT_CAPS[type] ?? 3)) return false;
+    if (typeof v !== "number" || v < 0 || v > critCap(unit, type)) return false;
   }
   return true;
 }

@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   slugifyUnit, createEntry, damageArmor, damageStruct,
-  setHeat, toggleCrit, isEntryValid, critTypesForUnit, tracksHeat,
+  setHeat, toggleCrit, isEntryValid, critTypesForUnit, critCap, tracksHeat,
 } from "../site/js/state.js";
 
 const unit = {
@@ -57,18 +57,34 @@ test("setHeat cycles levels and resets on re-click", () => {
   e = setHeat(e, 3); assert.equal(e.heat, 3);
 });
 
-test("toggleCrit cycles markers with caps", () => {
+test("toggleCrit marks individual boxes with per-type caps", () => {
   let e = createEntry(unit);
-  e = toggleCrit(e, "engine");
+  e = toggleCrit(e, unit, "engine", 0);
   assert.equal(e.crits.engine, 1);
-  e = toggleCrit(e, "engine");
-  assert.equal(e.crits.engine, 2);
-  e = toggleCrit(e, "engine");
+  e = toggleCrit(e, unit, "engine", 0);
   assert.equal(e.crits.engine, 0);
-  e = toggleCrit(e, "thruster");
-  assert.equal(e.crits.thruster, 1);
-  e = toggleCrit(e, "thruster");
-  assert.equal(e.crits.thruster, 0);
+  e = toggleCrit(e, unit, "weapons", 2);
+  assert.equal(e.crits.weapons, 3);
+  e = toggleCrit(e, unit, "weapons", 1);
+  assert.equal(e.crits.weapons, 2);
+  e = toggleCrit(e, unit, "weapons", 2);
+  assert.equal(e.crits.weapons, 3);
+  e = toggleCrit(e, unit, "weapons", 3);
+  assert.equal(e.crits.weapons, 4);
+  e = toggleCrit(e, unit, "weapons", 3);
+  assert.equal(e.crits.weapons, 3);
+});
+
+test("critCap: ground mech 1 engine / 4 others; aerospace 2 engine", () => {
+  assert.equal(critCap(unit, "engine"), 1);
+  assert.equal(critCap(unit, "fireControl"), 4);
+  assert.equal(critCap(unit, "mp"), 4);
+  assert.equal(critCap(unit, "weapons"), 4);
+  const af = { ...unit, type: "AF" };
+  assert.equal(critCap(af, "engine"), 2);
+  assert.equal(critCap(af, "thruster"), 1);
+  assert.equal(critCap(af, "fuel"), 1);
+  assert.equal(critCap(af, "crew"), 2);
 });
 
 test("critTypesForUnit: ground vs aerospace", () => {
@@ -94,4 +110,5 @@ test("isEntryValid enforces bounds", () => {
   assert.equal(isEntryValid({ ...e, heat: "X" }, unit), false);
   assert.equal(isEntryValid({ ...e, crits: null }, unit), false);
   assert.equal(isEntryValid({ ...e, crits: { ...e.crits, engine: 5 } }, unit), false);
+  assert.equal(isEntryValid({ ...e, crits: { ...e.crits, weapons: 5 } }, unit), false);
 });

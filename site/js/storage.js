@@ -1,4 +1,4 @@
-import { CRIT_TYPES, CRIT_CAPS, isEntryValid } from "./state.js";
+import { CRIT_TYPES, critCap, isEntryValid } from "./state.js";
 
 export const STORAGE_KEY = "as-companion-state-v1";
 
@@ -40,7 +40,7 @@ export function sanitizeState(obj, unitById) {
       for (const type of CRIT_TYPES) {
         const v = entry.crits && entry.crits[type];
         const n = typeof v === "number" ? Math.floor(v) : 0;
-        crits[type] = Math.max(0, Math.min(CRIT_CAPS[type], n));
+        crits[type] = Math.max(0, Math.min(critCap(unit, type), n));
       }
       return { unitId: entry.unitId, armorDamage, structDamage, heat, crits };
     });

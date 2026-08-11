@@ -62,7 +62,7 @@ test("JOURNEY: full game night — deploy, damage, heat, crits, refresh, export/
   click(atlasCard.querySelector('.heat-btn[data-heat="2"]'), window);
   atlasCard = document.querySelector('#roster .card[data-unit-id="atlas-as7-d"]');
   for (const t of ["engine", "weapons", "mp"]) {
-    click(atlasCard.querySelector(`.crit-slot[data-crit="${t}"]`), window);
+    click(atlasCard.querySelector(`.crit-slot[data-crit="${t}"][data-index="0"]`), window);
     atlasCard = document.querySelector('#roster .card[data-unit-id="atlas-as7-d"]');
   }
 
@@ -75,7 +75,7 @@ test("JOURNEY: full game night — deploy, damage, heat, crits, refresh, export/
   assert.equal(atlasCard.querySelectorAll('.pip[data-action="struct"].damaged').length, 2);
   assert.ok(atlasCard.querySelector('.heat-btn[data-heat="2"].active'));
   assert.equal(atlasCard.querySelectorAll(".crit-slot.filled").length, 3);
-  assert.equal(atlasCard.querySelector('.crit-slot[data-crit="engine"]').dataset.count, "1");
+  assert.ok(atlasCard.querySelector('.crit-slot[data-crit="engine"][data-index="0"].filled'));
 
   // Refresh simulation: fresh app boot reads persisted localStorage
   const { document: doc2 } = await boot(ls);
@@ -84,7 +84,7 @@ test("JOURNEY: full game night — deploy, damage, heat, crits, refresh, export/
   assert.equal(restored.querySelectorAll('.pip[data-action="armor"].damaged').length, 6);
   assert.ok(restored.querySelector('.heat-btn[data-heat="2"].active'));
   assert.equal(restored.querySelectorAll(".crit-slot.filled").length, 3);
-  assert.equal(restored.querySelector('.crit-slot[data-crit="engine"]').dataset.count, "1");
+  assert.ok(restored.querySelector('.crit-slot[data-crit="engine"][data-index="0"].filled'));
   assert.equal(doc2.getElementById("force-pv").textContent, "Force PV: 96");
 
   // Export from the refreshed app, import into a fresh profile
@@ -96,7 +96,7 @@ test("JOURNEY: full game night — deploy, damage, heat, crits, refresh, export/
   assert.equal(doc4.querySelectorAll("#roster .card").length, 2);
   const restored2 = doc4.querySelector('#roster .card[data-unit-id="atlas-as7-d"]');
   assert.equal(restored2.querySelectorAll('.pip[data-action="armor"].damaged').length, 6);
-  assert.equal(restored2.querySelector('.crit-slot[data-crit="engine"]').dataset.count, "1");
+  assert.ok(restored2.querySelector('.crit-slot[data-crit="engine"][data-index="0"].filled'));
 
   // Clear force
   click(doc4.getElementById("btn-clear"), w3);

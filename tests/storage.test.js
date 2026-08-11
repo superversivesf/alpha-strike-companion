@@ -44,7 +44,7 @@ test("sanitizeState clamps and drops invalid", () => {
     roster: [
       { unitId: "atlas-as7-d", armorDamage: 99, structDamage: -2, heat: "X", crits: [true] },
       { unitId: "ghost", armorDamage: 0, structDamage: 0, heat: 0, crits: { ...CRITS0 } },
-      { unitId: "atlas-as7-d", armorDamage: 4, structDamage: 2, heat: "S", crits: { ...CRITS0, engine: 9, weapons: 2 } },
+      { unitId: "atlas-as7-d", armorDamage: 4, structDamage: 2, heat: "S", crits: { ...CRITS0, engine: 9, weapons: 9 } },
     ],
   }, unitById);
   assert.equal(s.roster.length, 2);
@@ -52,8 +52,8 @@ test("sanitizeState clamps and drops invalid", () => {
   assert.equal(s.roster[0].structDamage, 0);
   assert.equal(s.roster[0].heat, 0);
   assert.deepEqual(s.roster[0].crits, CRITS0);
-  assert.equal(s.roster[1].crits.engine, 2);
-  assert.equal(s.roster[1].crits.weapons, 2);
+  assert.equal(s.roster[1].crits.engine, 1);
+  assert.equal(s.roster[1].crits.weapons, 4);
 });
 
 test("exportBlob produces filename and JSON text", () => {

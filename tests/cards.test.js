@@ -87,20 +87,24 @@ test("renderCard renders armor and structure pips with damage", () => {
   assert.equal(card.querySelectorAll('.pip[data-action="struct"].damaged').length, 1);
 });
 
-test("renderCard renders heat buttons and crit markers", () => {
+test("renderCard renders heat buttons and crit boxes", () => {
   let entry = createEntry(unit);
-  entry = { ...entry, heat: "S", crits: { ...entry.crits, engine: 2, weapons: 1 } };
+  entry = { ...entry, heat: "S", crits: { ...entry.crits, engine: 1, weapons: 2 } };
   const card = render(unit, entry);
   const heatBtns = card.querySelectorAll(".heat-btn");
   assert.equal(heatBtns.length, 4);
   assert.ok(card.querySelector('.heat-btn[data-heat="S"].active.shutdown'));
-  const crits = card.querySelectorAll(".crit-slot");
-  assert.equal(crits.length, 4);
-  assert.deepEqual([...crits].map(c => c.dataset.crit), ["engine", "fireControl", "mp", "weapons"]);
-  assert.ok(card.querySelector('.crit-slot[data-crit="engine"].filled'));
-  assert.equal(card.querySelector('.crit-slot[data-crit="engine"]').dataset.count, "2");
-  assert.equal(card.querySelector('.crit-slot[data-crit="weapons"]').dataset.count, "1");
-  assert.ok(!card.querySelector('.crit-slot[data-crit="mp"].filled'));
+  const rows = [...card.querySelectorAll(".crit-row")];
+  assert.equal(rows.length, 4);
+  assert.deepEqual(rows.map(r => r.querySelector(".crit-label").textContent), ["ENGINE", "F.CONTROL", "MP", "WEAPONS"]);
+  const engineBoxes = card.querySelectorAll('.crit-slot[data-crit="engine"]');
+  assert.equal(engineBoxes.length, 1);
+  assert.ok(engineBoxes[0].classList.contains("filled"));
+  const weaponsBoxes = card.querySelectorAll('.crit-slot[data-crit="weapons"]');
+  assert.equal(weaponsBoxes.length, 4);
+  assert.equal(card.querySelectorAll('.crit-slot[data-crit="weapons"].filled').length, 2);
+  assert.equal(card.querySelectorAll('.crit-slot[data-crit="fireControl"]').length, 4);
+  assert.equal(card.querySelectorAll('.crit-slot[data-crit="mp"]').length, 4);
 });
 
 test("renderCard hides heat for non-tracking units", () => {
@@ -109,11 +113,15 @@ test("renderCard hides heat for non-tracking units", () => {
   assert.equal(card.querySelectorAll(".heat-btn").length, 0);
 });
 
-test("renderCard uses aerospace crit markers for aerospace units", () => {
+test("renderCard uses aerospace crit boxes for aerospace units", () => {
   const af = { ...unit, type: "AF" };
   const card = render(af, createEntry(af));
-  const crits = [...card.querySelectorAll(".crit-slot")].map(c => c.dataset.crit);
-  assert.deepEqual(crits, ["engine", "fireControl", "weapons", "thruster", "fuel", "crew"]);
+  const rows = [...card.querySelectorAll(".crit-row")].map(r => r.querySelector(".crit-label").textContent);
+  assert.deepEqual(rows, ["ENGINE", "F.CONTROL", "WEAPONS", "THRUSTER", "FUEL", "CREW"]);
+  assert.equal(card.querySelectorAll('.crit-slot[data-crit="engine"]').length, 2);
+  assert.equal(card.querySelectorAll('.crit-slot[data-crit="thruster"]').length, 1);
+  assert.equal(card.querySelectorAll('.crit-slot[data-crit="fuel"]').length, 1);
+  assert.equal(card.querySelectorAll('.crit-slot[data-crit="crew"]').length, 2);
 });
 
 test("renderCard renders ability chips", () => {
@@ -128,5 +136,5 @@ test("renderCard wires data attributes for delegation", () => {
   assert.ok(card.querySelector('.card-remove[data-action="remove"]'));
   assert.ok(card.querySelector('.pip[data-action="armor"][data-index="0"]'));
   assert.ok(card.querySelector('.pip[data-action="struct"][data-index="0"]'));
-  assert.ok(card.querySelector('.crit-slot[data-crit="weapons"]'));
+  assert.ok(card.querySelector('.crit-slot[data-crit="weapons"][data-index="0"]'));
 });

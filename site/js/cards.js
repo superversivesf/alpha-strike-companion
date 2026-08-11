@@ -1,4 +1,4 @@
-import { createEntry, HEAT_LEVELS, critTypesForUnit, tracksHeat } from "./state.js";
+import { createEntry, HEAT_LEVELS, critTypesForUnit, critCap, tracksHeat } from "./state.js";
 
 const STAT_TIPS = {
   SZ: "Size — the unit's weight class: 1 (Light), 2 (Medium), 3 (Heavy), 4 (Assault)",
@@ -173,6 +173,31 @@ const CRIT_LABELS = {
   crew: "CREW",
 };
 
+function critRow(unit, type, count) {
+  const cap = critCap(unit, type);
+  const row = document.createElement("div");
+  row.className = "crit-row";
+  const label = document.createElement("span");
+  label.className = "crit-label";
+  label.textContent = CRIT_LABELS[type];
+  addTip(label, `${CRIT_LABELS[type]} — ${CRIT_TIPS[type]}`);
+  const boxes = document.createElement("div");
+  boxes.className = "crit-boxes";
+  for (let i = 0; i < cap; i++) {
+    const box = document.createElement("button");
+    box.type = "button";
+    box.className = "crit-slot";
+    box.dataset.crit = type;
+    box.dataset.index = String(i);
+    box.setAttribute("aria-label", `${CRIT_LABELS[type]} box ${i + 1}`);
+    if (i < count) box.classList.add("filled");
+    addTip(box, `${CRIT_LABELS[type]} — ${CRIT_TIPS[type]}`);
+    boxes.append(box);
+  }
+  row.append(label, boxes);
+  return row;
+}
+
 export function renderCard(unit, entry = createEntry(unit)) {
   const card = document.createElement("article");
   card.className = "card";
@@ -229,20 +254,11 @@ export function renderCard(unit, entry = createEntry(unit)) {
   const critLabel = document.createElement("div");
   critLabel.className = "track-label";
   critLabel.textContent = "CRITICAL HITS";
-  addTip(critLabel, "Mark critical hits. Any hit that damages Structure — or any attack roll of natural 12 that hits — triggers a critical hit check. Each marker counts one hit; caps reflect destruction rules.");
+  addTip(critLabel, "Mark critical hits. Any hit that damages Structure — or any attack roll of natural 12 that hits — triggers a critical hit check. Each box is one hit; the number of boxes per type matches the official card (Engine 1, others 4).");
   const critGrid = document.createElement("div");
   critGrid.className = "crit-grid";
   for (const type of critTypesForUnit(unit)) {
-    const slot = document.createElement("button");
-    slot.type = "button";
-    slot.className = "crit-slot";
-    slot.dataset.crit = type;
-    slot.textContent = CRIT_LABELS[type];
-    const count = entry.crits[type] ?? 0;
-    if (count > 0) slot.classList.add("filled");
-    slot.dataset.count = String(count);
-    addTip(slot, `${CRIT_LABELS[type]} — ${CRIT_TIPS[type]}`);
-    critGrid.append(slot);
+    critGrid.append(critRow(unit, type, entry.crits[type] ?? 0));
   }
   crits.append(critLabel, critGrid);
 
