@@ -33,8 +33,15 @@ export function validateState(obj, unitById) {
 
 export function sanitizeState(obj, unitById) {
   if (!obj || !Array.isArray(obj.roster)) return DEFAULT_STATE;
+  const seen = new Set();
   const roster = obj.roster
     .filter(entry => entry && unitById.has(entry.unitId))
+    .filter(entry => {
+      const id = typeof entry.id === "string" && entry.id ? entry.id : null;
+      if (id && seen.has(id)) return false;
+      if (id) seen.add(id);
+      return true;
+    })
     .map(entry => {
       const unit = unitById.get(entry.unitId);
       const armorDamage = Math.max(0, Math.min(unit.armor, Number(entry.armorDamage) || 0));
@@ -57,12 +64,23 @@ export function sanitizeState(obj, unitById) {
   const groups = Array.isArray(obj.groups)
     ? obj.groups
         .filter(g => isGroupValid(g))
-        .map(g => ({
-          id: g.id,
-          name: typeof g.name === "string" ? g.name : "",
-          size: Math.max(1, Math.min(10, Math.floor(Number(g.size) || 4))),
-          unitIds: g.unitIds.filter(id => rosterIds.has(id)),
-        }))
+        .map(g => {
+          const size = Math.max(1, Math.min(10, Math.floor(Number(g.size) || 4)));
+          const seenIds = new Set();
+          return {
+            id: g.id,
+            name: typeof g.name === "string" ? g.name : "",
+            size,
+            unitIds: g.unitIds
+              .filter(id => rosterIds.has(id))
+              .filter(id => {
+                if (seenIds.has(id)) return false;
+                seenIds.add(id);
+                return true;
+              })
+              .slice(0, size),
+          };
+        })
     : [];
   return { roster, groups };
 }

@@ -49,6 +49,22 @@ test("sanitizeState keeps valid groups, drops orphaned unit refs", () => {
   assert.deepEqual(s.groups[1].unitIds, []);
 });
 
+test("sanitizeState caps group unitIds to group size on import", () => {
+  const s = sanitizeState({
+    roster: [
+      { id: "e1", unitId: "atlas-as7-d", armorDamage: 0, structDamage: 0, heat: 0, crits: { ...CRITS0 }, skill: 4, skillSet: false },
+      { id: "e2", unitId: "atlas-as7-d", armorDamage: 0, structDamage: 0, heat: 0, crits: { ...CRITS0 }, skill: 4, skillSet: false },
+      { id: "e3", unitId: "atlas-as7-d", armorDamage: 0, structDamage: 0, heat: 0, crits: { ...CRITS0 }, skill: 4, skillSet: false },
+      { id: "e4", unitId: "atlas-as7-d", armorDamage: 0, structDamage: 0, heat: 0, crits: { ...CRITS0 }, skill: 4, skillSet: false },
+      { id: "e5", unitId: "atlas-as7-d", armorDamage: 0, structDamage: 0, heat: 0, crits: { ...CRITS0 }, skill: 4, skillSet: false },
+      { id: "e6", unitId: "atlas-as7-d", armorDamage: 0, structDamage: 0, heat: 0, crits: { ...CRITS0 }, skill: 4, skillSet: false },
+    ],
+    groups: [{ id: "g1", name: "Lance 1", size: 4, unitIds: ["e1", "e2", "e3", "e4", "e5", "e6"] }],
+  }, unitById);
+  assert.equal(s.groups[0].size, 4);
+  assert.equal(s.groups[0].unitIds.length, 4);
+});
+
 test("sanitizeState generates ids for legacy entries without one", () => {
   const s = sanitizeState({
     roster: [{ unitId: "atlas-as7-d", armorDamage: 0, structDamage: 0, heat: 0, crits: { ...CRITS0 }, skill: 4, skillSet: false }],
