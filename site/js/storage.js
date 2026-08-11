@@ -1,15 +1,16 @@
-import { CRIT_TYPES, critCap, isEntryValid } from "./state.js";
+import { CRIT_TYPES, critCap, isEntryValid, isGroupValid } from "./state.js";
 
 export const STORAGE_KEY = "as-companion-state-v1";
 
-export const DEFAULT_STATE = { roster: [] };
+export const DEFAULT_STATE = { roster: [], groups: [] };
 
 export function loadState(ls = globalThis.localStorage) {
   try {
     const raw = ls.getItem(STORAGE_KEY);
     if (!raw) return DEFAULT_STATE;
     const parsed = JSON.parse(raw);
-    return parsed && Array.isArray(parsed.roster) ? parsed : DEFAULT_STATE;
+    if (!parsed || !Array.isArray(parsed.roster)) return DEFAULT_STATE;
+    return { roster: parsed.roster, groups: Array.isArray(parsed.groups) ? parsed.groups : [] };
   } catch {
     return DEFAULT_STATE;
   }
@@ -21,10 +22,13 @@ export function saveState(state, ls = globalThis.localStorage) {
 
 export function validateState(obj, unitById) {
   if (!obj || !Array.isArray(obj.roster)) return false;
-  return obj.roster.every(entry => {
+  if (!obj.roster.every(entry => {
     const unit = unitById.get(entry.unitId);
     return unit && isEntryValid(entry, unit);
-  });
+  })) return false;
+  if (obj.groups !== undefined && !Array.isArray(obj.groups)) return false;
+  if (Array.isArray(obj.groups) && !obj.groups.every(g => isGroupValid(g))) return false;
+  return true;
 }
 
 export function sanitizeState(obj, unitById) {
@@ -46,7 +50,18 @@ export function sanitizeState(obj, unitById) {
       const skillSet = Boolean(entry.skillSet);
       return { unitId: entry.unitId, armorDamage, structDamage, heat, crits, skill, skillSet };
     });
-  return { roster };
+  const rosterIds = new Set(roster.map(e => e.unitId));
+  const groups = Array.isArray(obj.groups)
+    ? obj.groups
+        .filter(g => isGroupValid(g))
+        .map(g => ({
+          id: g.id,
+          name: typeof g.name === "string" ? g.name : "",
+          size: Math.max(1, Math.min(10, Math.floor(Number(g.size) || 4))),
+          unitIds: g.unitIds.filter(id => rosterIds.has(id)),
+        }))
+    : [];
+  return { roster, groups };
 }
 
 export function exportBlob(state) {

@@ -3,6 +3,7 @@ import { renderCard } from "./cards.js";
 import { initTooltips } from "./tooltips.js";
 import {
   createEntry, damageArmor, damageStruct, setHeat, toggleCrit, setSkill, slugifyUnit,
+  createGroup, addUnitToGroup, removeUnitFromGroup, setGroupName, groupNameForUnit, groupSizeForUnit,
 } from "./state.js";
 import { makeStorage } from "./storage.js";
 
@@ -12,8 +13,9 @@ let _doc = null;
 let _storage = null;
 let _units = [];
 let _unitById = new Map();
-let _state = { roster: [] };
+let _state = { roster: [], groups: [] };
 let _saveTimer = null;
+let _groupCounter = 0;
 
 function el(id) {
   return _doc.getElementById(id);
@@ -22,6 +24,80 @@ function el(id) {
 function persist() {
   _storage.saveState(_state);
 }
+
+function groupLabel(group) {
+  if (group.size === 5) return "Star";
+  if (group.size === 4) return "Lance";
+  return "Group";
+}
+
+function defaultGroupName(group) {
+  const label = groupLabel(group);
+  const n = _state.groups.filter(g => groupLabel(g) === label).length + 1;
+  return `${label} ${n}`;
+}
+
+function targetGroupFor(unit) {
+  const size = groupSizeForUnit(unit);
+  for (let i = _state.groups.length - 1; i >= 0; i--) {
+    const g = _state.groups[i];
+    if (g.size === size && g.unitIds.length < g.size) return g;
+  }
+  return null;
+}
+
+function renderGroupSection(group, entries) {
+  const section = _doc.createElement("section");
+  section.className = "group";
+  section.dataset.groupId = group ? group.id : "ungrouped";
+
+  const tab = _doc.createElement("div");
+  tab.className = "group-tab";
+  tab.textContent = group ? (group.name || defaultGroupName(group)) : "UNGROUPED";
+  section.append(tab);
+
+  const head = _doc.createElement("div");
+  head.className = "group-head";
+  if (group) {
+    const nameInput = _doc.createElement("input");
+    nameInput.className = "group-name";
+    nameInput.value = group.name || defaultGroupName(group);
+    nameInput.setAttribute("aria-label", "Group name");
+    head.append(nameInput);
+    const type = _doc.createElement("span");
+    type.className = "group-type";
+    type.textContent = groupLabel(group);
+    head.append(type);
+    const count = _doc.createElement("span");
+    count.className = "group-count";
+    count.textContent = `${entries.length}/${group.size}`;
+    head.append(count);
+    const del = _doc.createElement("button");
+    del.type = "button";
+    del.className = "group-delete";
+    del.dataset.action = "delete-group";
+    del.textContent = "\u2715";
+    del.setAttribute("aria-label", "Delete group");
+    head.append(del);
+  } else {
+    const type = _doc.createElement("span");
+    type.className = "group-type";
+    type.textContent = "Ungrouped";
+    head.append(type);
+  }
+  section.append(head);
+
+  const cards = _doc.createElement("div");
+  cards.className = "group-cards";
+  for (const entry of entries) {
+    const unit = _unitById.get(entry.unitId);
+    if (!unit) continue;
+    cards.append(renderCard(unit, entry));
+  }
+  section.append(cards);
+  return section;
+}
+
 function renderPicker() {
   const query = el("search").value;
   const type = el("type-filter").value;
@@ -49,15 +125,31 @@ function renderPicker() {
 
 function renderRoster() {
   const roster = el("roster");
-  roster.querySelectorAll(".card").forEach(c => c.remove());
+  roster.querySelectorAll(".group").forEach(s => s.remove());
   const empty = el("roster-empty");
   let totalPv = 0;
+
+  const byGroup = new Map();
+  const ungrouped = [];
   for (const entry of _state.roster) {
+    const g = _state.groups.find(grp => grp.unitIds.includes(entry.unitId));
+    if (g) {
+      if (!byGroup.has(g.id)) byGroup.set(g.id, []);
+      byGroup.get(g.id).push(entry);
+    } else {
+      ungrouped.push(entry);
+    }
     const unit = _unitById.get(entry.unitId);
-    if (!unit) continue;
-    totalPv += unit.pv;
-    roster.append(renderCard(unit, entry));
+    if (unit) totalPv += unit.pv;
   }
+
+  for (const group of _state.groups) {
+    roster.append(renderGroupSection(group, byGroup.get(group.id) || []));
+  }
+  if (ungrouped.length) {
+    roster.append(renderGroupSection(null, ungrouped));
+  }
+
   el("force-pv").textContent = `Force PV: ${totalPv}`;
   empty.style.display = _state.roster.length ? "none" : "";
 }
@@ -84,7 +176,9 @@ export async function init({ doc, storage }) {
   if (!storage.importState) {
     _storage = makeStorage(_unitById, _doc.defaultView.localStorage);
   }
-  _state = _storage.loadState() || { roster: [] };
+  _state = _storage.loadState() || { roster: [], groups: [] };
+  if (!Array.isArray(_state.groups)) _state = { ..._state, groups: [] };
+  _groupCounter = _state.groups.length;
 
   const typeFilter = el("type-filter");
   for (const type of uniqueTypes(_units)) {
@@ -102,47 +196,99 @@ export async function init({ doc, storage }) {
     if (!btn) return;
     const unit = _unitById.get(btn.dataset.unitId);
     if (!unit) return;
-    _state = { ..._state, roster: [..._state.roster, createEntry(unit)] };
+    const entry = createEntry(unit);
+    let groups = _state.groups;
+    const target = targetGroupFor(unit);
+    if (target) {
+      groups = groups.map(g => (g.id === target.id ? addUnitToGroup(g, entry.unitId) : g));
+    } else {
+      const g = createGroup(unit);
+      g.unitIds = [entry.unitId];
+      groups = [...groups, g];
+    }
+    _state = { ..._state, roster: [..._state.roster, entry], groups };
     persist();
     renderRoster();
-    /* no re-render of picker */
   });
 
   el("roster").addEventListener("click", e => {
     const card = e.target.closest(".card");
-    if (!card) return;
-    const unitId = card.dataset.unitId;
-    if (e.target.dataset.action === "remove") {
-      _state = { ..._state, roster: _state.roster.filter(entry => entry.unitId !== unitId) };
+    if (card) {
+      const unitId = card.dataset.unitId;
+      if (e.target.dataset.action === "remove") {
+        _state = {
+          ..._state,
+          roster: _state.roster.filter(entry => entry.unitId !== unitId),
+          groups: _state.groups.map(g => removeUnitFromGroup(g, unitId)),
+        };
+        persist();
+        renderRoster();
+        return;
+      }
+      if (e.target.dataset.action === "armor") {
+        updateEntry(unitId, (entry, unit) => damageArmor(entry, unit, Number(e.target.dataset.index)));
+        return;
+      }
+      if (e.target.dataset.action === "struct") {
+        updateEntry(unitId, (entry, unit) => damageStruct(entry, unit, Number(e.target.dataset.index)));
+        return;
+      }
+      if (e.target.dataset.heat) {
+        updateEntry(unitId, entry => setHeat(entry, e.target.dataset.heat === "S" ? "S" : Number(e.target.dataset.heat)));
+        return;
+      }
+      if (e.target.dataset.action === "set-skill") {
+        const select = card.querySelector(".skill-select");
+        if (!select) return;
+        updateEntry(unitId, entry => setSkill(entry, Number(select.value)));
+        return;
+      }
+      if (e.target.dataset.crit) {
+        updateEntry(unitId, (entry, unit) => toggleCrit(entry, unit, e.target.dataset.crit, Number(e.target.dataset.index)));
+      }
+      return;
+    }
+    const del = e.target.closest('[data-action="delete-group"]');
+    if (del) {
+      const section = del.closest(".group");
+      const gid = section && section.dataset.groupId;
+      if (gid && gid !== "ungrouped") {
+        _state = { ..._state, groups: _state.groups.filter(g => g.id !== gid) };
+        persist();
+        renderRoster();
+      }
+      return;
+    }
+    const nameInput = e.target.closest(".group-name");
+    if (nameInput) {
+      const section = nameInput.closest(".group");
+      const gid = section && section.dataset.groupId;
+      if (gid && gid !== "ungrouped") {
+        _state = {
+          ..._state,
+          groups: _state.groups.map(g => (g.id === gid ? setGroupName(g, nameInput.value) : g)),
+        };
+        persist();
+      }
+    }
+  });
+
+  el("roster").addEventListener("input", e => {
+    const nameInput = e.target.closest(".group-name");
+    if (!nameInput) return;
+    const section = nameInput.closest(".group");
+    const gid = section && section.dataset.groupId;
+    if (gid && gid !== "ungrouped") {
+      _state = {
+        ..._state,
+        groups: _state.groups.map(g => (g.id === gid ? setGroupName(g, nameInput.value) : g)),
+      };
       persist();
-      renderRoster();
-      return;
-    }
-    if (e.target.dataset.action === "armor") {
-      updateEntry(unitId, (entry, unit) => damageArmor(entry, unit, Number(e.target.dataset.index)));
-      return;
-    }
-    if (e.target.dataset.action === "struct") {
-      updateEntry(unitId, (entry, unit) => damageStruct(entry, unit, Number(e.target.dataset.index)));
-      return;
-    }
-    if (e.target.dataset.heat) {
-      updateEntry(unitId, entry => setHeat(entry, e.target.dataset.heat === "S" ? "S" : Number(e.target.dataset.heat)));
-      return;
-    }
-    if (e.target.dataset.action === "set-skill") {
-      const select = card.querySelector(".skill-select");
-      if (!select) return;
-      updateEntry(unitId, entry => setSkill(entry, Number(select.value)));
-      return;
-    }
-    if (e.target.dataset.crit) {
-      updateEntry(unitId, (entry, unit) => toggleCrit(entry, unit, e.target.dataset.crit, Number(e.target.dataset.index)));
     }
   });
 
   el("btn-clear").addEventListener("click", () => {
-    _state = { roster: [] };
+    _state = { roster: [], groups: [] };
     persist();
     renderRoster();
   });
@@ -171,6 +317,7 @@ export async function init({ doc, storage }) {
     const text = await file.text();
     try {
       _state = _storage.importState(text);
+      if (!Array.isArray(_state.groups)) _state = { ..._state, groups: [] };
       persist();
       renderRoster();
     } catch (err) {

@@ -91,6 +91,52 @@ export function toggleCrit(entry, unit, type, index) {
   return { ...entry, crits: { ...entry.crits, [type]: next } };
 }
 
+export function isClanUnit(unit) {
+  return (unit.tech || "").toLowerCase().includes("clan");
+}
+
+export function groupSizeForUnit(unit) {
+  return isClanUnit(unit) ? 5 : 4;
+}
+
+export function groupNameForUnit(unit) {
+  return isClanUnit(unit) ? "Star" : "Lance";
+}
+
+export function createGroup(unit) {
+  return {
+    id: `g-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
+    name: "",
+    size: groupSizeForUnit(unit),
+    unitIds: [],
+  };
+}
+
+export function addUnitToGroup(group, unitId) {
+  if (group.unitIds.length >= group.size) return group;
+  if (group.unitIds.includes(unitId)) return group;
+  return { ...group, unitIds: [...group.unitIds, unitId] };
+}
+
+export function removeUnitFromGroup(group, unitId) {
+  return { ...group, unitIds: group.unitIds.filter(id => id !== unitId) };
+}
+
+export function setGroupName(group, name) {
+  return { ...group, name };
+}
+
+export function isGroupValid(group) {
+  return Boolean(
+    group &&
+    typeof group.id === "string" &&
+    typeof group.size === "number" &&
+    group.size >= 1 &&
+    Array.isArray(group.unitIds) &&
+    group.unitIds.every(id => typeof id === "string")
+  );
+}
+
 export function isEntryValid(entry, unit) {
   if (typeof entry.armorDamage !== "number" || entry.armorDamage < 0 || entry.armorDamage > unit.armor) return false;
   if (typeof entry.structDamage !== "number" || entry.structDamage < 0 || entry.structDamage > unit.structure) return false;

@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 import {
   slugifyUnit, createEntry, damageArmor, damageStruct,
   setHeat, toggleCrit, setSkill, isEntryValid, critTypesForUnit, critCap, tracksHeat,
+  isClanUnit, groupSizeForUnit, groupNameForUnit, createGroup,
+  addUnitToGroup, removeUnitFromGroup, setGroupName, isGroupValid,
 } from "../site/js/state.js";
 
 const unit = {
@@ -115,6 +117,39 @@ test("tracksHeat: only 'Mechs and Aerospace Fighters", () => {
   assert.equal(tracksHeat({ type: "CV" }), false);
   assert.equal(tracksHeat({ type: "CI" }), false);
   assert.equal(tracksHeat({ type: "BA" }), false);
+});
+
+test("group sizing: Clan units go in Stars of 5, Inner Sphere in Lances of 4", () => {
+  const clan = { ...unit, tech: "Clan" };
+  const is = { ...unit, tech: "Inner Sphere" };
+  const none = { ...unit, tech: "" };
+  assert.equal(isClanUnit(clan), true);
+  assert.equal(isClanUnit(is), false);
+  assert.equal(isClanUnit(none), false);
+  assert.equal(groupSizeForUnit(clan), 5);
+  assert.equal(groupSizeForUnit(is), 4);
+  assert.equal(groupSizeForUnit(none), 4);
+  assert.equal(groupNameForUnit(clan), "Star");
+  assert.equal(groupNameForUnit(is), "Lance");
+});
+
+test("group helpers: create, add, remove, rename, validate", () => {
+  const g = createGroup({ ...unit, tech: "Clan" });
+  assert.equal(g.size, 5);
+  assert.equal(g.unitIds.length, 0);
+  assert.equal(isGroupValid(g), true);
+  const g2 = addUnitToGroup(g, "atlas-as7-d");
+  assert.deepEqual(g2.unitIds, ["atlas-as7-d"]);
+  const g3 = addUnitToGroup(g2, "atlas-as7-d");
+  assert.equal(g3.unitIds.length, 1);
+  const g4 = addUnitToGroup(g3, "atlas-as7-k");
+  assert.deepEqual(g4.unitIds, ["atlas-as7-d", "atlas-as7-k"]);
+  const g5 = removeUnitFromGroup(g4, "atlas-as7-d");
+  assert.deepEqual(g5.unitIds, ["atlas-as7-k"]);
+  const g6 = setGroupName(g5, "Star 1");
+  assert.equal(g6.name, "Star 1");
+  assert.equal(isGroupValid({ ...g, size: 0 }), false);
+  assert.equal(isGroupValid(null), false);
 });
 
 test("isEntryValid enforces bounds", () => {

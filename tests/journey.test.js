@@ -104,6 +104,53 @@ test("JOURNEY: full game night — deploy, damage, heat, crits, refresh, export/
   assert.equal(doc4.getElementById("force-pv").textContent, "Force PV: 0");
 });
 
+test("JOURNEY: units auto-group into Lances (IS) and Stars (Clan)", async () => {
+  const clanUnit = { ...UNITS[0], tech: "Clan" };
+  const isUnit = { ...UNITS[1], tech: "Inner Sphere" };
+  const units = [clanUnit, isUnit];
+  const html = readFileSync("site/index.html", "utf8");
+  const dom = new JSDOM(html, { url: "http://localhost/", pretendToBeVisual: true });
+  const { window } = dom;
+  globalThis.window = window;
+  globalThis.document = window.document;
+  globalThis.fetch = async () => ({ ok: true, json: async () => ({ units }) });
+  window.__AS_MANUAL__ = true;
+  const app = await import("../site/js/app.js");
+  const storage = makeStorage(new Map(units.map(u => [u.id, u])), window.localStorage);
+  await app.init({ doc: window.document, storage });
+
+  // Deploy 2 Clan mechs -> one Star (size 5)
+  click(document.querySelector("#picker-list li button"), window);
+  click(document.querySelector("#picker-list li button"), window);
+  let groups = document.querySelectorAll("#roster .group");
+  assert.equal(groups.length, 1);
+  assert.match(groups[0].querySelector(".group-tab").textContent, /Star/);
+  assert.equal(groups[0].querySelectorAll(".card").length, 2);
+  assert.match(groups[0].querySelector(".group-count").textContent, /2\/5/);
+
+  // Deploy an Inner Sphere mech -> new Lance (size 4)
+  const search = document.getElementById("search");
+  search.value = "awesome";
+  search.dispatchEvent(new window.Event("input", { bubbles: true }));
+  click(document.querySelector("#picker-list li button"), window);
+  groups = document.querySelectorAll("#roster .group");
+  assert.equal(groups.length, 2);
+  assert.match(groups[1].querySelector(".group-tab").textContent, /Lance/);
+  assert.equal(groups[1].querySelectorAll(".card").length, 1);
+  assert.match(groups[1].querySelector(".group-count").textContent, /1\/4/);
+
+  // Rename the Star via its input
+  const starName = groups[0].querySelector(".group-name");
+  starName.value = "Wolf Alpha";
+  starName.dispatchEvent(new window.Event("input", { bubbles: true }));
+  starName.dispatchEvent(new window.Event("change", { bubbles: true }));
+  const saved = JSON.parse(window.localStorage.getItem("as-companion-state-v1"));
+  assert.equal(saved.groups.length, 2);
+  assert.equal(saved.groups[0].name, "Wolf Alpha");
+  assert.equal(saved.groups[0].size, 5);
+  assert.equal(saved.groups[1].size, 4);
+});
+
 test("JOURNEY: search and type-filter interaction", async () => {
   const { window, document } = await boot();
   const search = document.getElementById("search");

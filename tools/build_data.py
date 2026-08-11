@@ -157,7 +157,24 @@ def to_webp(src, dst):
         im.save(dst, "WEBP", quality=WEBP_QUALITY, method=6)
 
 
-def build(units_dir, sprites_dir, site_data_dir):
+def load_tech_lookup(json_data_dir):
+    """Map (Class, Variant) -> technology name from the MUL JSON dumps."""
+    tech = {}
+    if not os.path.isdir(json_data_dir):
+        return tech
+    for fn in os.listdir(json_data_dir):
+        if not fn.endswith(".json"):
+            continue
+        with open(os.path.join(json_data_dir, fn), encoding="utf-8") as f:
+            d = json.load(f)
+        for u in d.get("Units", []):
+            cls = (u.get("Class") or "").strip().upper()
+            var = (u.get("Variant") or "").strip()
+            tech[(cls, var)] = (u.get("Technology") or {}).get("Name", "")
+    return tech
+
+
+def build(units_dir, sprites_dir, site_data_dir, json_data_dir=None):
     image_set = set()
     units = []
     for dirpath, dirnames, filenames in os.walk(units_dir):
@@ -168,6 +185,11 @@ def build(units_dir, sprites_dir, site_data_dir):
             with open(path, encoding="latin-1") as f:
                 lines = f.read().splitlines()
             units.append(build_record(path, lines, image_set))
+
+    tech = load_tech_lookup(json_data_dir) if json_data_dir else {}
+    for u in units:
+        key = (u["class"].strip().upper(), u["variant"].strip())
+        u["tech"] = tech.get(key, "")
 
     units.sort(key=lambda u: (u["class"].lower(), u["variant"].lower()))
     sanity_check(units, sprites_dir)
@@ -192,5 +214,5 @@ def build(units_dir, sprites_dir, site_data_dir):
 
 
 if __name__ == "__main__":
-    units = build(ARCHIVE_UNITS, ARCHIVE_SPRITES, SITE_DATA)
+    units = build(ARCHIVE_UNITS, ARCHIVE_SPRITES, SITE_DATA, os.path.join(ROOT, "Alpha-Strike-Tool", "JSON_Data"))
     print(f"Total: {len(units)} units")

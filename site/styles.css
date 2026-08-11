@@ -152,6 +152,69 @@ h1, h2, h3 { font-family: var(--font-head); letter-spacing: 0.06em; }
   color: var(--muted);
 }
 
+.group {
+  flex: 1 1 100%;
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.12);
+  padding: 10px;
+}
+.group-tab {
+  display: inline-block;
+  padding: 3px 12px;
+  margin-bottom: 8px;
+  border: 1px solid var(--accent);
+  border-radius: 3px;
+  background: rgba(240, 124, 31, 0.12);
+  color: var(--accent-strong);
+  font-family: var(--font-head);
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.group-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.group-name {
+  flex: 0 1 220px;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13px;
+}
+.group-type {
+  color: var(--muted);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.group-count {
+  color: var(--tan);
+  font-size: 12px;
+  font-weight: 600;
+}
+.group-delete {
+  margin-left: auto;
+  border: none;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 13px;
+}
+.group-delete:hover { color: var(--damaged); }
+.group-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: flex-start;
+}
+
 .card {
   position: relative;
   flex: 0 1 auto;
@@ -526,6 +589,9 @@ h1, h2, h3 { font-family: var(--font-head); letter-spacing: 0.06em; }
   .picker-list li button { font-size: 12px; padding: 5px 9px; }
 
   .roster { padding: 10px; gap: 10px; }
+  .group { padding: 8px; }
+  .group-cards { gap: 10px; }
+  .group-name { flex: 1 1 auto; }
 
   .card { width: 100%; }
   .card-title { font-size: 20px; }

@@ -11,7 +11,10 @@ const UNITS = [
 ];
 const unitById = new Map(UNITS.map(u => [u.id, u]));
 const CRITS0 = { engine: 0, fireControl: 0, mp: 0, weapons: 0, thruster: 0, fuel: 0, crew: 0 };
-const GOOD = { roster: [{ unitId: "atlas-as7-d", armorDamage: 3, structDamage: 1, heat: 2, crits: { ...CRITS0, weapons: 1 }, skill: 4, skillSet: false }] };
+const GOOD = {
+  roster: [{ unitId: "atlas-as7-d", armorDamage: 3, structDamage: 1, heat: 2, crits: { ...CRITS0, weapons: 1 }, skill: 4, skillSet: false }],
+  groups: [{ id: "g1", name: "Lance 1", size: 4, unitIds: ["atlas-as7-d"] }],
+};
 
 function freshLocalStorage() {
   const dom = new JSDOM("", { url: "http://localhost/" });
@@ -26,9 +29,24 @@ test("saveState/loadState roundtrip through localStorage", () => {
 
 test("loadState returns default on missing and corrupt data", () => {
   const ls = freshLocalStorage();
-  assert.deepEqual(loadState(ls), { roster: [] });
+  assert.deepEqual(loadState(ls), { roster: [], groups: [] });
   ls.setItem("as-companion-state-v1", "{not json");
-  assert.deepEqual(loadState(ls), { roster: [] });
+  assert.deepEqual(loadState(ls), { roster: [], groups: [] });
+});
+
+test("sanitizeState keeps valid groups, drops orphaned unit refs", () => {
+  const s = sanitizeState({
+    roster: [{ unitId: "atlas-as7-d", armorDamage: 0, structDamage: 0, heat: 0, crits: { ...CRITS0 }, skill: 4, skillSet: false }],
+    groups: [
+      { id: "g1", name: "Lance 1", size: 4, unitIds: ["atlas-as7-d"] },
+      { id: "g2", name: "Star 1", size: 5, unitIds: ["ghost-unit"] },
+      { id: "g3", name: "Bad", size: 0, unitIds: [] },
+    ],
+  }, unitById);
+  assert.equal(s.groups.length, 2);
+  assert.equal(s.groups[0].id, "g1");
+  assert.deepEqual(s.groups[0].unitIds, ["atlas-as7-d"]);
+  assert.deepEqual(s.groups[1].unitIds, []);
 });
 
 test("validateState rejects bad entries", () => {
@@ -37,6 +55,8 @@ test("validateState rejects bad entries", () => {
   assert.equal(validateState({ roster: [{ unitId: "atlas-as7-d", armorDamage: 99, structDamage: 0, heat: 0, crits: { ...CRITS0 } }] }, unitById), false);
   assert.equal(validateState({ roster: "nope" }, unitById), false);
   assert.equal(validateState(null, unitById), false);
+  assert.equal(validateState({ roster: [], groups: "nope" }, unitById), false);
+  assert.equal(validateState({ roster: [], groups: [{ id: "g", name: "", size: 0, unitIds: [] }] }, unitById), false);
 });
 
 test("sanitizeState clamps and drops invalid", () => {
