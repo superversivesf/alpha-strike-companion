@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { filterUnits, uniqueTypes, uniqueValues } from "../site/js/search.js";
+import { filterUnits, uniqueTypes, uniqueValues, typeName } from "../site/js/search.js";
 
 const units = [
   { id: "atlas-as7-d", class: "ATLAS", variant: "AS7-D", type: "BM", pv: 52, tech: "Inner Sphere", era: "Star League", role: "Juggernaut", size: 4 },
@@ -55,6 +55,14 @@ test("filterUnits combines multiple filters", () => {
 
 test("uniqueTypes returns sorted non-UNK types", () => {
   assert.deepEqual(uniqueTypes(units), ["BM", "CV"]);
+});
+
+test("typeName maps all codes including rare types", () => {
+  assert.equal(typeName("BM"), "BattleMech");
+  assert.equal(typeName("BD"), "Building");
+  assert.equal(typeName("SS"), "Space Station");
+  assert.equal(typeName("JS"), "JumpShip");
+  assert.equal(typeName("ZZ"), "ZZ");
 });
 
 test("uniqueValues returns sorted non-empty values", () => {

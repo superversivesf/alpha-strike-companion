@@ -29,6 +29,9 @@ export const TYPE_NAMES = {
   MS: "Mobile Structure",
   CI: "Conventional Infantry",
   BA: "Battle Armor",
+  BD: "Building",
+  SS: "Space Station",
+  JS: "JumpShip",
   UNK: "Unknown",
 };
 
