@@ -1,5 +1,6 @@
 import { filterUnits, uniqueTypes } from "./search.js";
 import { renderCard } from "./cards.js";
+import { initTooltips } from "./tooltips.js";
 import {
   createEntry, damageArmor, damageStruct, setHeat, toggleCrit, slugifyUnit,
 } from "./state.js";
@@ -74,6 +75,7 @@ function updateEntry(unitId, mutate) {
 export async function init({ doc, storage }) {
   _doc = doc;
   _storage = storage;
+  initTooltips(doc);
   const res = await fetch("data/units.json");
   if (!res.ok) throw new Error(`Failed to load units.json: ${res.status}`);
   const payload = await res.json();

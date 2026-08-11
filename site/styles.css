@@ -306,16 +306,12 @@ h1, h2, h3 { font-family: var(--font-head); letter-spacing: 0.06em; }
   cursor: help;
   text-decoration: underline dotted rgba(154, 164, 173, 0.5);
   text-underline-offset: 2px;
-  position: relative;
 }
-.tip::after {
-  content: attr(data-tip);
-  position: absolute;
-  bottom: calc(100% + 8px);
-  left: 50%;
-  transform: translateX(-50%);
-  width: max-content;
-  max-width: 220px;
+
+.tooltip-float {
+  position: fixed;
+  z-index: 1000;
+  max-width: 240px;
   padding: 6px 10px;
   background: #0c0e12;
   border: 1px solid var(--accent);
@@ -323,18 +319,13 @@ h1, h2, h3 { font-family: var(--font-head); letter-spacing: 0.06em; }
   color: var(--text);
   font-size: 11px;
   line-height: 1.35;
-  font-weight: 400;
-  letter-spacing: 0;
-  text-decoration: none;
-  text-align: left;
-  white-space: normal;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
-  z-index: 50;
+  transition: opacity 0.12s ease;
 }
-.tip:hover::after {
+.tooltip-float.visible {
   opacity: 1;
   visibility: visible;
 }
