@@ -312,13 +312,41 @@ export function renderCard(unit, entry = createEntry(unit)) {
   identity.querySelector(".identity-row:last-child .identity-cell:last-child").append(skillSetter(entry));
 
   const damage = document.createElement("div");
-  damage.className = "card-stats";
-  damage.append(
-    statRow("S", unit.damage.s),
-    statRow("M", unit.damage.m),
-    statRow("L", unit.damage.l),
-    statRow("OV", unit.overheat),
-  );
+  damage.className = "card-damage";
+  const dmgRow = document.createElement("div");
+  dmgRow.className = "damage-row";
+  const dmgCells = [
+    { label: "S(0)", value: unit.damage.s, tip: "Damage at Short range (0–6\"), no range modifier" },
+    { label: "M(+2)", value: unit.damage.m, tip: "Damage at Medium range (7–12\"), +2 Target Number modifier" },
+    { label: "L(+4)", value: unit.damage.l, tip: "Damage at Long range (13–24\"), +4 Target Number modifier" },
+  ];
+  for (const cell of dmgCells) {
+    const c = document.createElement("span");
+    c.className = "damage-cell";
+    const lab = document.createElement("b");
+    lab.textContent = cell.label;
+    addTip(lab, cell.tip);
+    const val = document.createElement("span");
+    val.textContent = `: ${cell.value}`;
+    c.append(lab, val);
+    dmgRow.append(c);
+  }
+  damage.append(dmgRow);
+
+  const ov = document.createElement("div");
+  ov.className = "card-ov";
+  const ovRow = document.createElement("div");
+  ovRow.className = "damage-row";
+  const ovCell = document.createElement("span");
+  ovCell.className = "damage-cell";
+  const ovLab = document.createElement("b");
+  ovLab.textContent = "OV";
+  addTip(ovLab, "Overheat Value — extra damage you may add to an attack by taking that much heat");
+  const ovVal = document.createElement("span");
+  ovVal.textContent = `: ${unit.overheat}`;
+  ovCell.append(ovLab, ovVal);
+  ovRow.append(ovCell);
+  ov.append(ovRow);
 
   const tracks = document.createElement("div");
   tracks.className = "card-tracks";
@@ -372,7 +400,7 @@ export function renderCard(unit, entry = createEntry(unit)) {
     abilities.append(chip);
   }
 
-  details.append(identity, damage, tracks, crits, heat, abilities);
+  details.append(identity, damage, ov, tracks, crits, heat, abilities);
 
   const art = document.createElement("div");
   art.className = "card-art";

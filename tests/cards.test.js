@@ -31,9 +31,12 @@ test("renderCard shows identity, stats, pv", () => {
   const row2 = [...rows[1].querySelectorAll(".identity-cell")];
   assert.deepEqual(row2.map(c => c.querySelector("b").textContent), ["Role", "Skill"]);
   assert.equal(row2[0].querySelector("span").textContent, "Juggernaut");
-  const damage = [...card.querySelectorAll(".card-stats .stat-row")];
-  assert.deepEqual(damage.map(r => r.querySelector("b").textContent), ["S", "M", "L", "OV"]);
-  assert.deepEqual(damage.map(r => r.querySelector("span").textContent), ["5", "5", "2", "0"]);
+  const dmgCells = [...card.querySelectorAll(".card-damage .damage-cell")];
+  assert.deepEqual(dmgCells.map(c => c.querySelector("b").textContent), ["S(0)", "M(+2)", "L(+4)"]);
+  assert.deepEqual(dmgCells.map(c => c.querySelector("span").textContent), [": 5", ": 5", ": 2"]);
+  const ovCell = card.querySelector(".card-ov .damage-cell");
+  assert.equal(ovCell.querySelector("b").textContent, "OV");
+  assert.equal(ovCell.querySelector("span").textContent, ": 0");
 });
 
 test("renderCard shows skill setter until set, then fixed value", () => {
