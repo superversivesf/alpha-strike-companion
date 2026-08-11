@@ -144,14 +144,17 @@ test("renderCard uses aerospace crit boxes for aerospace units", () => {
   assert.equal(card.querySelectorAll('.crit-slot[data-crit="crew"]').length, 2);
 });
 
-test("renderCard shows crit effect descriptions", () => {
-  const card = render(unit, createEntry(unit));
-  const effects = [...card.querySelectorAll(".crit-effect")].map(e => e.textContent);
-  assert.equal(effects.length, 4);
-  assert.match(effects[0], /Engine Hit/);
-  assert.match(effects[1], /Fire Control Hit/);
-  assert.match(effects[2], /MP Hit/);
-  assert.match(effects[3], /Weapon Hit/);
+test("renderCard places crits in the side column under the art", () => {
+  const dom = new JSDOM("<!DOCTYPE html><body></body>");
+  globalThis.document = dom.window.document;
+  const card = renderCard(unit, createEntry(unit));
+  const side = card.querySelector(".card-side");
+  assert.ok(side);
+  const art = side.querySelector(".card-art");
+  const crits = side.querySelector(".card-crits");
+  assert.ok(art && crits);
+  assert.ok(art.compareDocumentPosition(crits) & dom.window.Node.DOCUMENT_POSITION_FOLLOWING);
+  assert.equal(card.querySelectorAll(".crit-effect").length, 0);
 });
 
 test("renderCard renders ability chips", () => {

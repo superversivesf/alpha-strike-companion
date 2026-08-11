@@ -270,10 +270,7 @@ function critRow(unit, type, count) {
     addTip(box, `${CRIT_LABELS[type]} — ${CRIT_TIPS[type]}`);
     boxes.append(box);
   }
-  const effect = document.createElement("span");
-  effect.className = "crit-effect";
-  effect.textContent = CRIT_EFFECTS[type];
-  row.append(label, boxes, effect);
+  row.append(label, boxes);
   return row;
 }
 
@@ -427,6 +424,9 @@ export function renderCard(unit, entry = createEntry(unit)) {
 
   details.append(identity, damage, ovHeat, tracks, special);
 
+  const side = document.createElement("div");
+  side.className = "card-side";
+
   const art = document.createElement("div");
   art.className = "card-art";
   if (unit.image) {
@@ -441,8 +441,9 @@ export function renderCard(unit, entry = createEntry(unit)) {
     ph.textContent = unit.class.slice(0, 2);
     art.append(ph);
   }
+  side.append(art, crits);
 
-  body.append(details, art);
-  card.append(head, body, crits);
+  body.append(details, side);
+  card.append(head, body);
   return card;
 }
