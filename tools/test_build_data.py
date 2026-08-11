@@ -77,6 +77,28 @@ armor = 2
 struct = 1
 special = Array[String]([])
 """
+FIXTURE_TRES_JPG = """[ext_resource type="Texture2D" path="res://Sprites/Units/aesir-3145.jpg" id="3_abcde"]
+
+[resource]
+unitIMG = ExtResource("3_abcde")
+variant = "AES-1"
+title = "AESIR"
+pv = 30
+type = "BM"
+sz = 3
+tmm = 2
+move = "8"
+role = "Brawler"
+skill = 4
+damageS = 3
+damageM = 3
+damageL = 1
+ov = 0
+armor = 5
+struct = 4
+special = Array[String]([])
+"""
+
 
 
 class TestParseTres(unittest.TestCase):
@@ -147,6 +169,10 @@ class TestParseTres(unittest.TestCase):
         self.assertEqual(rec["damage"]["s"], 0)
         self.assertEqual(rec["size"], 0)
 
+    def test_build_record_jpg_image(self):
+        rec = bd.build_record("t.tres", FIXTURE_TRES_JPG.splitlines(), set())
+        self.assertEqual(rec["image"], "aesir-3145.jpg")
+
 
 class TestBuildEndToEnd(unittest.TestCase):
     def setUp(self):
@@ -156,15 +182,20 @@ class TestBuildEndToEnd(unittest.TestCase):
         self.site_dir = os.path.join(self.tmp, "site")
         os.makedirs(os.path.join(self.units_dir, "ATLAS"), exist_ok=True)
         os.makedirs(os.path.join(self.units_dir, "Pwwka"), exist_ok=True)
+        os.makedirs(os.path.join(self.units_dir, "Aesir"), exist_ok=True)
         os.makedirs(self.sprites_dir, exist_ok=True)
         with open(os.path.join(self.units_dir, "ATLAS", "ATLAS AS7-D.tres"), "w", encoding="utf-8") as f:
             f.write(FIXTURE_TRES)
         with open(os.path.join(self.units_dir, "Pwwka", "Pwwka S-PW-1LAM.tres"), "w", encoding="utf-8") as f:
             f.write(FIXTURE_TRES_LAM)
+        with open(os.path.join(self.units_dir, "Aesir", "Aesir AES-1.tres"), "w", encoding="utf-8") as f:
+            f.write(FIXTURE_TRES_JPG)
         with open(os.path.join(self.sprites_dir, "atlas-rg.png"), "wb") as f:
             f.write(b"PNGDATA")
         with open(os.path.join(self.sprites_dir, "pwwka-jfr.png"), "wb") as f:
             f.write(b"PNGDATA")
+        with open(os.path.join(self.sprites_dir, "aesir-3145.jpg"), "wb") as f:
+            f.write(b"JPGDATA")
         with open(os.path.join(self.sprites_dir, "atlas-rg.png.import"), "w", encoding="utf-8") as f:
             f.write("ignored import metadata")
 
@@ -176,7 +207,7 @@ class TestBuildEndToEnd(unittest.TestCase):
         with open(os.path.join(self.site_dir, "data", "units.json"), encoding="utf-8") as f:
             payload = json.load(f)
         units = payload["units"]
-        self.assertEqual(len(units), 2)
+        self.assertEqual(len(units), 3)
         ids = [u["id"] for u in units]
         self.assertEqual(len(ids), len(set(ids)))
         by_id = {u["id"]: u for u in units}
@@ -185,6 +216,7 @@ class TestBuildEndToEnd(unittest.TestCase):
         img_dir = os.path.join(self.site_dir, "data", "img")
         self.assertTrue(os.path.exists(os.path.join(img_dir, "atlas-rg.png")))
         self.assertTrue(os.path.exists(os.path.join(img_dir, "pwwka-jfr.png")))
+        self.assertTrue(os.path.exists(os.path.join(img_dir, "aesir-3145.jpg")))
         self.assertFalse(os.path.exists(os.path.join(img_dir, "atlas-rg.png.import")))
 
     def test_sanity_check_fails_on_bad_units(self):

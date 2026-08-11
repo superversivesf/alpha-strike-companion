@@ -164,7 +164,7 @@ def build(units_dir, sprites_dir, site_data_dir):
 
     os.makedirs(os.path.join(site_data_dir, "img"), exist_ok=True)
     for img in sorted(image_set):
-        if not img.endswith(".png"):
+        if not (img.endswith(".png") or img.endswith(".jpg")):
             continue
         src = os.path.join(sprites_dir, img)
         if os.path.exists(src):
