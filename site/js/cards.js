@@ -223,12 +223,12 @@ export function renderCard(unit, entry = createEntry(unit)) {
 
   const head = document.createElement("header");
   head.className = "card-head";
-  const variant = document.createElement("div");
-  variant.className = "card-variant";
-  variant.textContent = unit.variant;
   const title = document.createElement("h3");
   title.className = "card-title";
   title.textContent = unit.class;
+  const variant = document.createElement("div");
+  variant.className = "card-variant";
+  variant.textContent = unit.variant;
   const pv = document.createElement("span");
   pv.className = "card-pv";
   pv.textContent = `PV ${unit.pv}`;
@@ -239,7 +239,7 @@ export function renderCard(unit, entry = createEntry(unit)) {
   remove.dataset.action = "remove";
   remove.setAttribute("aria-label", "Remove unit");
   remove.textContent = "\u2715";
-  head.append(variant, title, pv, remove);
+  head.append(title, variant, pv, remove);
 
   const body = document.createElement("div");
   body.className = "card-body";
