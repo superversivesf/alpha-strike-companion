@@ -20,27 +20,29 @@ function render(unit, entry) {
 
 test("renderCard shows identity, stats, pv", () => {
   const card = render(unit, createEntry(unit));
-  assert.equal(card.querySelector(".card-title").textContent, "ATLAS");
   assert.equal(card.querySelector(".card-variant").textContent, "AS7-D");
+  assert.equal(card.querySelector(".card-title").textContent, "ATLAS");
   assert.equal(card.querySelector(".card-pv").textContent, "PV 52");
   const rows = [...card.querySelectorAll(".stat-row")];
-  assert.equal(rows.length, 8);
-  assert.equal(rows[0].querySelector("b").textContent, "SZ");
-  assert.equal(rows[0].querySelector("span").textContent, "4");
-  assert.equal(rows[1].querySelector("b").textContent, "TMM");
-  assert.equal(rows[1].querySelector("span").textContent, "1");
-  assert.equal(rows[2].querySelector("b").textContent, "MV");
-  assert.equal(rows[2].querySelector("span").textContent, "6");
-  assert.equal(rows[3].querySelector("b").textContent, "Role");
-  assert.equal(rows[3].querySelector("span").textContent, "Juggernaut");
-  assert.equal(rows[4].querySelector("b").textContent, "S");
-  assert.equal(rows[4].querySelector("span").textContent, "5");
-  assert.equal(rows[5].querySelector("b").textContent, "M");
+  assert.equal(rows.length, 9);
+  assert.equal(rows[0].querySelector("b").textContent, "TP");
+  assert.equal(rows[0].querySelector("span").textContent, "BM");
+  assert.equal(rows[1].querySelector("b").textContent, "SZ");
+  assert.equal(rows[1].querySelector("span").textContent, "4");
+  assert.equal(rows[2].querySelector("b").textContent, "TMM");
+  assert.equal(rows[2].querySelector("span").textContent, "1");
+  assert.equal(rows[3].querySelector("b").textContent, "MV");
+  assert.equal(rows[3].querySelector("span").textContent, "6");
+  assert.equal(rows[4].querySelector("b").textContent, "Role");
+  assert.equal(rows[4].querySelector("span").textContent, "Juggernaut");
+  assert.equal(rows[5].querySelector("b").textContent, "S");
   assert.equal(rows[5].querySelector("span").textContent, "5");
-  assert.equal(rows[6].querySelector("b").textContent, "L");
-  assert.equal(rows[6].querySelector("span").textContent, "2");
-  assert.equal(rows[7].querySelector("b").textContent, "OV");
-  assert.equal(rows[7].querySelector("span").textContent, "0");
+  assert.equal(rows[6].querySelector("b").textContent, "M");
+  assert.equal(rows[6].querySelector("span").textContent, "5");
+  assert.equal(rows[7].querySelector("b").textContent, "L");
+  assert.equal(rows[7].querySelector("span").textContent, "2");
+  assert.equal(rows[8].querySelector("b").textContent, "OV");
+  assert.equal(rows[8].querySelector("span").textContent, "0");
 });
 
 test("renderCard lays out details left, artwork right", () => {

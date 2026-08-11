@@ -1,6 +1,7 @@
 import { createEntry, HEAT_LEVELS, critTypesForUnit, critCap, tracksHeat } from "./state.js";
 
 const STAT_TIPS = {
+  TP: "Type — unit classification: BM BattleMech, IM IndustrialMech, PM ProtoMech, CV Combat Vehicle, SV Support Vehicle, AF Aerospace Fighter, CF Conventional Fighter, DS Spheroid DropShip, DA Aerodyne DropShip, SC Small Craft, MS Mobile Structure, CI Conventional Infantry, BA Battle Armor",
   SZ: "Size — the unit's weight class: 1 (Light), 2 (Medium), 3 (Heavy), 4 (Assault)",
   TMM: "Target Movement Modifier — added to the Target Number of attacks made against this unit when it uses its standard movement mode",
   MV: "Movement — inches per turn. Suffixes: j = jump, t = tracked, w = wheeled, h = hover, v = VTOL, g = WiGE, n = naval, s = submersible, f = foot (infantry), a = aerospace thrust, m = motorized (infantry), i = airship",
@@ -111,6 +112,23 @@ const ABILITY_TIPS = {
   XMEC: "Extended Mechanized — battle armor may ride on any ground unit type",
 };
 
+const TYPE_TIPS = {
+  BM: "BattleMech",
+  IM: "IndustrialMech",
+  PM: "ProtoMech",
+  CV: "Combat Vehicle",
+  SV: "Support Vehicle",
+  AF: "Aerospace Fighter",
+  CF: "Conventional Fighter",
+  DS: "Spheroid DropShip",
+  DA: "Aerodyne DropShip",
+  SC: "Small Craft",
+  MS: "Mobile Structure",
+  CI: "Conventional Infantry",
+  BA: "Battle Armor",
+  UNK: "Unknown type",
+};
+
 const FALLBACK_TIP = "Special ability — see the Alpha Strike Commander's Edition rulebook";
 
 export function abilityTip(code) {
@@ -205,12 +223,12 @@ export function renderCard(unit, entry = createEntry(unit)) {
 
   const head = document.createElement("header");
   head.className = "card-head";
+  const variant = document.createElement("div");
+  variant.className = "card-variant";
+  variant.textContent = unit.variant;
   const title = document.createElement("h3");
   title.className = "card-title";
   title.textContent = unit.class;
-  const variant = document.createElement("span");
-  variant.className = "card-variant";
-  variant.textContent = unit.variant;
   const pv = document.createElement("span");
   pv.className = "card-pv";
   pv.textContent = `PV ${unit.pv}`;
@@ -221,7 +239,7 @@ export function renderCard(unit, entry = createEntry(unit)) {
   remove.dataset.action = "remove";
   remove.setAttribute("aria-label", "Remove unit");
   remove.textContent = "\u2715";
-  head.append(title, variant, pv, remove);
+  head.append(variant, title, pv, remove);
 
   const body = document.createElement("div");
   body.className = "card-body";
@@ -232,6 +250,7 @@ export function renderCard(unit, entry = createEntry(unit)) {
   const stats = document.createElement("div");
   stats.className = "card-stats";
   stats.append(
+    statRow("TP", unit.type),
     statRow("SZ", unit.size),
     statRow("TMM", unit.tmm),
     statRow("MV", unit.move),
