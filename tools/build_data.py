@@ -157,20 +157,21 @@ def to_webp(src, dst):
         im.save(dst, "WEBP", quality=WEBP_QUALITY, method=6)
 
 
-MUL_ERA_NAMES = {
-    9: "Age of War",
-    10: "Star League",
-    11: "Early Succession Wars",
-    13: "Late Succession Wars",
-    14: "Clan Invasion",
-    15: "Civil War",
-    16: "Jihad",
-    247: "Early Republic",
-    254: "Late Republic",
-    255: "Dark Age",
-    256: "ilClan",
-    257: "Emergence",
-}
+MUL_ERA_INFO = [
+    (9, "Age of War", 2439, 2571),
+    (10, "Star League", 2571, 2781),
+    (11, "Early Succession Wars", 2781, 2864),
+    (13, "Late Succession Wars", 2864, 3049),
+    (14, "Clan Invasion", 3049, 3067),
+    (15, "Civil War", 3067, 3075),
+    (16, "Jihad", 3075, 3081),
+    (247, "Early Republic", 3081, 3101),
+    (254, "Late Republic", 3101, 3130),
+    (255, "Dark Age", 3130, 3151),
+    (256, "ilClan", 3151, 3152),
+    (257, "Emergence", 3152, None),
+]
+MUL_ERA_NAMES = {i: n for i, n, _, _ in MUL_ERA_INFO}
 
 
 def load_tech_lookup(json_data_dir):
@@ -228,9 +229,15 @@ def build(units_dir, sprites_dir, site_data_dir, json_data_dir=None):
                     u["image"] = webp_name
 
     with open(os.path.join(site_data_dir, "units.json"), "w", encoding="utf-8") as f:
-        json.dump({"units": units}, f, ensure_ascii=False)
+        json.dump({
+            "units": units,
+            "eras": [
+                {"id": i, "name": n, "start": s, "end": e}
+                for i, n, s, e in MUL_ERA_INFO
+            ],
+        }, f, ensure_ascii=False)
 
-    print(f"Wrote {len(units)} units, {len(image_set)} images")
+    print(f"Wrote {len(units)} units, {len(image_set)} images, {len(MUL_ERA_INFO)} eras")
     return units
 
 

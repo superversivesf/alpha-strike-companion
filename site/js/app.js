@@ -12,6 +12,7 @@ const SAVE_DEBOUNCE_MS = 0;
 let _doc = null;
 let _storage = null;
 let _units = [];
+let _eras = [];
 let _unitById = new Map();
 let _state = { roster: [], groups: [] };
 let _saveTimer = null;
@@ -176,6 +177,7 @@ export async function init({ doc, storage }) {
   if (!res.ok) throw new Error(`Failed to load units.json: ${res.status}`);
   const payload = await res.json();
   _units = payload.units;
+  _eras = payload.eras || [];
   _unitById = new Map(_units.map(u => [u.id, u]));
   if (!storage.importState) {
     _storage = makeStorage(_unitById, _doc.defaultView.localStorage);
@@ -204,7 +206,8 @@ export async function init({ doc, storage }) {
     }
   }
   populateFilter(typeFilter, uniqueTypes(_units).map(t => ({ value: t, label: `${typeName(t)} (${t})` })));
-  populateFilter(eraFilter, uniqueValues(_units, "era"));
+  const eraLabel = e => e.end ? `${e.name} (${e.start}–${e.end})` : `${e.name} (${e.start}+)`;
+  populateFilter(eraFilter, _eras.map(e => ({ value: e.name, label: eraLabel(e) })));
   populateFilter(sideFilter, uniqueValues(_units, "tech"));
   populateFilter(roleFilter, uniqueValues(_units, "role"));
   for (const size of ["1", "2", "3", "4"]) {

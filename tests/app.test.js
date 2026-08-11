@@ -10,6 +10,12 @@ const UNITS = [
   { id: slugifyUnit("Trooper", "TP-1R"), class: "Trooper", variant: "TP-1R", type: "UNK", size: 1, tmm: 0, move: "12\"", role: "Scout", skill: 4, damage: { s: 1, m: 1, l: 0 }, overheat: 0, armor: 2, structure: 1, pv: 14, abilities: [], image: "", tech: "Clan", era: "Clan Invasion" },
 ];
 
+const ERAS = [
+  { id: 9, name: "Age of War", start: 2439, end: 2571 },
+  { id: 10, name: "Star League", start: 2571, end: 2781 },
+  { id: 14, name: "Clan Invasion", start: 3049, end: 3067 },
+];
+
 async function boot({ state = { roster: [] } } = {}) {
   const html = readFileSync("site/index.html", "utf8");
   const dom = new JSDOM(html, { url: "http://localhost/", pretendToBeVisual: true });
@@ -17,7 +23,7 @@ async function boot({ state = { roster: [] } } = {}) {
   globalThis.window = window;
   globalThis.document = window.document;
   globalThis.localStorage = window.localStorage;
-  globalThis.fetch = async () => ({ ok: true, json: async () => ({ units: UNITS }) });
+  globalThis.fetch = async () => ({ ok: true, json: async () => ({ units: UNITS, eras: ERAS }) });
   window.__AS_MANUAL__ = true;
   const app = await import("../site/js/app.js");
   const saved = [];
@@ -38,7 +44,9 @@ test("init loads units, populates filters and picker", async () => {
   const typeLabels = [...document.querySelectorAll("#type-filter option")].map(o => o.textContent);
   assert.deepEqual(typeLabels, ["All types", "BattleMech (BM)"]);
   const eraOptions = [...document.querySelectorAll("#era-filter option")].map(o => o.value);
-  assert.deepEqual(eraOptions, ["", "Clan Invasion", "Star League"]);
+  assert.deepEqual(eraOptions, ["", "Age of War", "Star League", "Clan Invasion"]);
+  const eraLabels = [...document.querySelectorAll("#era-filter option")].map(o => o.textContent);
+  assert.deepEqual(eraLabels, ["All eras", "Age of War (2439–2571)", "Star League (2571–2781)", "Clan Invasion (3049–3067)"]);
   const sideOptions = [...document.querySelectorAll("#side-filter option")].map(o => o.value);
   assert.deepEqual(sideOptions, ["", "Clan", "Inner Sphere"]);
   const roleOptions = [...document.querySelectorAll("#role-filter option")].map(o => o.value);
