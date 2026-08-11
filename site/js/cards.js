@@ -1,4 +1,4 @@
-import { createEntry, HEAT_LEVELS, critTypesForUnit, critCap, tracksHeat } from "./state.js";
+import { createEntry, HEAT_LEVELS, critTypesForUnit, critCap, tracksHeat, isAerospaceUnit } from "./state.js";
 
 const STAT_TIPS = {
   SZ: "Size — the unit's weight class: 1 (Light), 2 (Medium), 3 (Heavy), 4 (Assault)",
@@ -13,6 +13,16 @@ const STAT_TIPS = {
 };
 
 const CRIT_TIPS = {
+  engine: "Engine Hit — 'Mechs: +1 heat in the End Phase if it fired weapons; a 2nd Engine Hit destroys the unit. Vehicles: halve Move, TMM and damage; a 2nd destroys the unit",
+  fireControl: "Fire Control Hit — cumulative +2 Target Number for all subsequent weapon attacks",
+  mp: "MP Hit — halves all Move ratings and TMM (round down), minimum 2\" and TMM 0; at 0\" the unit is immobile",
+  weapons: "Weapon Hit — all damage values (including special abilities with damage) reduced by 1, minimum 0",
+  thruster: "Thruster Hit (aerospace) — loses 1 Thrust; at 0 Thrust the unit crashes and is destroyed. May only occur once",
+  fuel: "Fuel Hit (aerospace) — fuel tank hit; the unit crashes and is destroyed",
+  crew: "Crew Hit (aerospace) — 1st adds +2 to all attacks and control rolls; a 2nd kills the crew and the unit is destroyed",
+};
+
+const CRIT_EFFECTS = {
   engine: "Engine Hit — 'Mechs: +1 heat in the End Phase if it fired weapons; a 2nd Engine Hit destroys the unit. Vehicles: halve Move, TMM and damage; a 2nd destroys the unit",
   fireControl: "Fire Control Hit — cumulative +2 Target Number for all subsequent weapon attacks",
   mp: "MP Hit — halves all Move ratings and TMM (round down), minimum 2\" and TMM 0; at 0\" the unit is immobile",
@@ -260,7 +270,10 @@ function critRow(unit, type, count) {
     addTip(box, `${CRIT_LABELS[type]} — ${CRIT_TIPS[type]}`);
     boxes.append(box);
   }
-  row.append(label, boxes);
+  const effect = document.createElement("span");
+  effect.className = "crit-effect";
+  effect.textContent = CRIT_EFFECTS[type];
+  row.append(label, boxes, effect);
   return row;
 }
 
@@ -412,7 +425,7 @@ export function renderCard(unit, entry = createEntry(unit)) {
   }
   crits.append(critLabel, critGrid);
 
-  details.append(identity, damage, ovHeat, tracks, special, crits);
+  details.append(identity, damage, ovHeat, tracks, special);
 
   const art = document.createElement("div");
   art.className = "card-art";
@@ -430,6 +443,6 @@ export function renderCard(unit, entry = createEntry(unit)) {
   }
 
   body.append(details, art);
-  card.append(head, body);
+  card.append(head, body, crits);
   return card;
 }
