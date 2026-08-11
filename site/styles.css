@@ -303,13 +303,59 @@ h1, h2, h3 { font-family: var(--font-head); letter-spacing: 0.06em; }
 }
 .damage-cell span { color: var(--text); font-weight: 400; }
 
+.card-ov-heat {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
 .card-ov {
+  flex: 0 0 auto;
   border: 1px solid var(--border);
   border-radius: 4px;
   background: rgba(0, 0, 0, 0.18);
   padding: 4px 8px;
-  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
 }
+
+.card-heat {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.18);
+  padding: 4px 8px;
+}
+.card-heat .track-label { margin: 0 6px 0 0; }
+.heat-btn {
+  flex: 1 1 0;
+  height: 30px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: var(--panel-2);
+  color: var(--text);
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 13px;
+}
+.heat-btn[data-heat="1"] { background: linear-gradient(180deg, #f5e6a8, #f0d060); color: #3a2f00; }
+.heat-btn[data-heat="2"] { background: linear-gradient(180deg, #f0a050, #e87830); color: #2a1500; }
+.heat-btn[data-heat="3"] { background: linear-gradient(180deg, #e04030, #c02018); color: #fff; }
+.heat-btn[data-heat="S"] { background: linear-gradient(180deg, #8a1010, #4a0808); color: #ffd0d0; }
+.heat-btn.active {
+  outline: 2px solid var(--accent-strong);
+  outline-offset: 1px;
+  box-shadow: 0 0 8px rgba(255, 140, 0, 0.5);
+}
+.heat-btn.shutdown.active {
+  outline-color: #ff4040;
+  box-shadow: 0 0 10px rgba(255, 60, 60, 0.7);
+}
+
 .stat-row b {
   color: var(--text);
   font-weight: 700;
@@ -337,21 +383,6 @@ h1, h2, h3 { font-family: var(--font-head); letter-spacing: 0.06em; }
 }
 .pip.damaged { background: var(--damaged); border-color: #8a1f1a; }
 .pip:hover { outline: 1px solid var(--accent-strong); }
-
-.card-heat { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
-.card-heat .track-label { margin: 0 8px 0 0; }
-.heat-btn {
-  width: 30px;
-  height: 26px;
-  border: 1px solid var(--border);
-  border-radius: 3px;
-  background: var(--panel-2);
-  color: var(--text);
-  cursor: pointer;
-  font-weight: 600;
-}
-.heat-btn.active { background: var(--accent); border-color: var(--accent-strong); color: #1a1a1a; }
-.heat-btn.shutdown.active { background: var(--damaged); border-color: #8a1f1a; }
 
 .card-crits { margin-bottom: 8px; }
 .crit-grid { display: flex; flex-direction: column; gap: 3px; }

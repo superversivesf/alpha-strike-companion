@@ -333,6 +333,9 @@ export function renderCard(unit, entry = createEntry(unit)) {
   }
   damage.append(dmgRow);
 
+  const ovHeat = document.createElement("div");
+  ovHeat.className = "card-ov-heat";
+
   const ov = document.createElement("div");
   ov.className = "card-ov";
   const ovRow = document.createElement("div");
@@ -347,6 +350,30 @@ export function renderCard(unit, entry = createEntry(unit)) {
   ovCell.append(ovLab, ovVal);
   ovRow.append(ovCell);
   ov.append(ovRow);
+  ovHeat.append(ov);
+
+  if (tracksHeat(unit)) {
+    const heat = document.createElement("div");
+    heat.className = "card-heat";
+    const heatLabel = document.createElement("div");
+    heatLabel.className = "track-label";
+    heatLabel.textContent = "HEAT";
+    addTip(heatLabel, "Heat level — 'Mechs and Aerospace Fighters track heat. Each OV point used adds 1 heat; at level 3+ you take damage; reaching S = Shutdown (immobile, TMM −4). Click a level; click again to reset.");
+    heat.append(heatLabel);
+    for (const level of HEAT_LEVELS) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "heat-btn";
+      btn.dataset.heat = String(level);
+      btn.textContent = String(level);
+      if (entry.heat === level) {
+        btn.classList.add("active");
+        if (level === "S") btn.classList.add("shutdown");
+      }
+      heat.append(btn);
+    }
+    ovHeat.append(heat);
+  }
 
   const tracks = document.createElement("div");
   tracks.className = "card-tracks";
@@ -368,28 +395,6 @@ export function renderCard(unit, entry = createEntry(unit)) {
   }
   crits.append(critLabel, critGrid);
 
-  const heat = document.createElement("div");
-  heat.className = "card-heat";
-  if (tracksHeat(unit)) {
-    const heatLabel = document.createElement("div");
-    heatLabel.className = "track-label";
-    heatLabel.textContent = "HEAT";
-    addTip(heatLabel, "Heat level — 'Mechs and Aerospace Fighters track heat. Each OV point used adds 1 heat; at level 3+ you take damage; reaching S = Shutdown (immobile, TMM −4). Click a level; click again to reset.");
-    heat.append(heatLabel);
-    for (const level of HEAT_LEVELS) {
-      const btn = document.createElement("button");
-      btn.type = "button";
-      btn.className = "heat-btn";
-      btn.dataset.heat = String(level);
-      btn.textContent = String(level);
-      if (entry.heat === level) {
-        btn.classList.add("active");
-        if (level === "S") btn.classList.add("shutdown");
-      }
-      heat.append(btn);
-    }
-  }
-
   const abilities = document.createElement("footer");
   abilities.className = "card-abilities";
   for (const ability of unit.abilities || []) {
@@ -400,7 +405,7 @@ export function renderCard(unit, entry = createEntry(unit)) {
     abilities.append(chip);
   }
 
-  details.append(identity, damage, ov, tracks, crits, heat, abilities);
+  details.append(identity, damage, ovHeat, tracks, crits, abilities);
 
   const art = document.createElement("div");
   art.className = "card-art";
