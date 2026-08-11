@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Alpha Strike — Tabletop Companion</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark">▲</span>
+      <div class="brand-text">
+        <h1>ALPHA STRIKE</h1>
+        <span class="brand-sub">Tabletop Companion</span>
+      </div>
+    </div>
+    <div class="controls">
+      <input id="search" type="search" placeholder="Search units…" autocomplete="off">
+      <select id="type-filter" aria-label="Filter by type">
+        <option value="">All types</option>
+      </select>
+      <span id="force-pv" class="force-pv">Force PV: 0</span>
+      <button id="btn-clear" class="btn btn-danger" type="button">Clear force</button>
+      <button id="btn-export" class="btn" type="button">Export</button>
+      <button id="btn-import" class="btn" type="button">Import</button>
+      <input id="import-file" type="file" accept="application/json,.json" hidden>
+    </div>
+  </header>
+
+  <section id="picker" class="picker" aria-label="Unit picker">
+    <div class="picker-head">
+      <h2>UNIT PICKER</h2>
+      <button id="picker-toggle" class="btn btn-small" type="button">Hide ▾</button>
+    </div>
+    <ul id="picker-list" class="picker-list"></ul>
+  </section>
+
+  <main id="roster" class="roster" aria-label="Force roster">
+    <div id="roster-empty" class="roster-empty">
+      <p>No units on the table yet.</p>
+      <p>Search the picker above and click a unit to deploy it.</p>
+    </div>
+  </main>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
