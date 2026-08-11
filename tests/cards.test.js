@@ -23,8 +23,48 @@ test("renderCard shows identity, stats, pv", () => {
   assert.equal(card.querySelector(".card-title").textContent, "ATLAS");
   assert.equal(card.querySelector(".card-variant").textContent, "AS7-D");
   assert.equal(card.querySelector(".card-pv").textContent, "PV 52");
-  assert.match(card.querySelector(".card-stats").textContent, /SZ\s*4/);
-  assert.match(card.querySelector(".card-stats").textContent, /S\s*5\s*M\s*5\s*L\s*2/);
+  const rows = [...card.querySelectorAll(".stat-row")];
+  assert.equal(rows.length, 8);
+  assert.equal(rows[0].querySelector("b").textContent, "SZ");
+  assert.equal(rows[0].querySelector("span").textContent, "4");
+  assert.equal(rows[1].querySelector("b").textContent, "TMM");
+  assert.equal(rows[1].querySelector("span").textContent, "1");
+  assert.equal(rows[2].querySelector("b").textContent, "MV");
+  assert.equal(rows[2].querySelector("span").textContent, "6");
+  assert.equal(rows[3].querySelector("b").textContent, "Role");
+  assert.equal(rows[3].querySelector("span").textContent, "Juggernaut");
+  assert.equal(rows[4].querySelector("b").textContent, "S");
+  assert.equal(rows[4].querySelector("span").textContent, "5");
+  assert.equal(rows[5].querySelector("b").textContent, "M");
+  assert.equal(rows[5].querySelector("span").textContent, "5");
+  assert.equal(rows[6].querySelector("b").textContent, "L");
+  assert.equal(rows[6].querySelector("span").textContent, "2");
+  assert.equal(rows[7].querySelector("b").textContent, "OV");
+  assert.equal(rows[7].querySelector("span").textContent, "0");
+});
+
+test("renderCard lays out details left, artwork right", () => {
+  const dom = new JSDOM("<!DOCTYPE html><body></body>");
+  globalThis.document = dom.window.document;
+  const card = renderCard(unit, createEntry(unit));
+  const body = card.querySelector(".card-body");
+  assert.ok(body);
+  const details = body.querySelector(".card-details");
+  const art = body.querySelector(".card-art");
+  assert.ok(details && art);
+  assert.ok(details.compareDocumentPosition(art) & dom.window.Node.DOCUMENT_POSITION_FOLLOWING);
+});
+
+test("renderCard adds tooltips to stats, tracks, heat, crits, abilities", () => {
+  const card = render(unit, createEntry(unit));
+  assert.ok(card.querySelector('.stat-row b[title="Size — the unit\'s size class (1–4)"]'));
+  assert.ok(card.querySelector('.track-label[title*="Armor points"]'));
+  assert.ok(card.querySelector('.track-label[title*="Structure points"]'));
+  assert.ok(card.querySelector('.track-label[title*="Heat level"]'));
+  assert.ok(card.querySelector('.track-label[title*="Critical hit slots"]'));
+  assert.ok(card.querySelector('.ability[title*="Autocannon"]'));
+  assert.ok(card.querySelector('.ability[title*="Indirect fire"]'));
+  assert.ok(card.querySelector('.card-pv[title*="Point Value"]'));
 });
 
 test("renderCard shows artwork when image present, placeholder when not", () => {
