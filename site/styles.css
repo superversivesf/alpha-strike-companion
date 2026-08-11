@@ -153,8 +153,8 @@ h1, h2, h3 { font-family: var(--font-head); letter-spacing: 0.06em; }
 
 .card {
   position: relative;
-  flex: 0 0 520px;
-  width: 520px;
+  flex: 0 0 600px;
+  width: 600px;
   height: 400px;
   display: flex;
   flex-direction: column;
@@ -217,8 +217,8 @@ h1, h2, h3 { font-family: var(--font-head); letter-spacing: 0.06em; }
 }
 
 .card-art {
-  flex: 0 0 170px;
-  width: 170px;
+  flex: 0 0 195px;
+  width: 195px;
   height: 100%;
   min-height: 0;
   align-self: stretch;
