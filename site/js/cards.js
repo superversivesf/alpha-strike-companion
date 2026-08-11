@@ -444,6 +444,15 @@ export function renderCard(unit, entry = createEntry(unit)) {
   side.append(art, crits);
 
   body.append(details, side);
+
+  const destroyed = entry.armorDamage >= unit.armor && entry.structDamage >= unit.structure;
+  if (destroyed) {
+    const stamp = document.createElement("div");
+    stamp.className = "destroyed-stamp";
+    stamp.textContent = "DESTROYED";
+    card.append(stamp);
+  }
+
   card.append(head, body);
   return card;
 }

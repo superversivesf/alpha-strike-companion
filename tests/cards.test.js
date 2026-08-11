@@ -157,6 +157,15 @@ test("renderCard places crits in the side column under the art", () => {
   assert.equal(card.querySelectorAll(".crit-effect").length, 0);
 });
 
+test("renderCard shows destroyed stamp when armor and structure are fully damaged", () => {
+  const entry = { ...createEntry(unit), armorDamage: 3, structDamage: 2 };
+  const card = render(unit, entry);
+  assert.ok(card.querySelector(".destroyed-stamp"));
+  assert.equal(card.querySelector(".destroyed-stamp").textContent, "DESTROYED");
+  const partial = render(unit, { ...createEntry(unit), armorDamage: 2, structDamage: 2 });
+  assert.equal(partial.querySelectorAll(".destroyed-stamp").length, 0);
+});
+
 test("renderCard renders ability chips", () => {
   const card = render(unit, createEntry(unit));
   const chips = [...card.querySelectorAll(".ability")].map(e => e.textContent);
