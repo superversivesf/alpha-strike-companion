@@ -246,7 +246,7 @@ h1, h2, h3 { font-family: var(--font-head); letter-spacing: 0.06em; }
 .identity-row {
   display: flex;
   gap: 14px;
-  font-size: 12px;
+  font-size: 14px;
   color: var(--muted);
 }
 .identity-cell b {
@@ -259,13 +259,13 @@ h1, h2, h3 { font-family: var(--font-head); letter-spacing: 0.06em; }
 
 .skill-setter { display: inline-flex; align-items: center; gap: 4px; }
 .skill-select {
-  width: 40px;
+  width: 44px;
   padding: 1px 4px;
   border: 1px solid var(--border);
   border-radius: 3px;
   background: var(--bg);
   color: var(--text);
-  font-size: 12px;
+  font-size: 14px;
 }
 .skill-set {
   padding: 1px 8px;
