@@ -18,19 +18,31 @@ localStorage; export/import JSON transfers a force between devices.
 ## Data
 
 Unit data (6888 variants) and artwork come from the Master Unit List archive
-cloned at Alpha-Strike-Tool/ (https://github.com/treverhw/Alpha-Strike-Tool).
-The official MUL website is offline; its data was scraped into that repo.
+at https://github.com/treverhw/Alpha-Strike-Tool — the official MUL website is
+offline, and that repo contains its scraped data (per-unit `.tres` stat files,
+raw JSON dumps, and unit artwork).
+
+### Getting the data
+
+The archive is large (~490 MB), so it is not bundled in this repository. Clone
+it into the project root **before** running the build:
+
+```
+git clone --depth 1 https://github.com/treverhw/Alpha-Strike-Tool.git
+```
 
 ## Build (one time)
 
 ```
 npm install        # dev deps only (jsdom)
+pip install pillow # image conversion to WebP
 npm run build:data # python3 tools/build_data.py → site/data/
 ```
 
-The build converts all artwork to WebP (quality 82) — ~32 MB total for the
-full 1568-image set, down from ~88 MB as PNG. Requires Pillow
-(`pip install pillow`).
+The build reads `Alpha-Strike-Tool/` (the archive above), parses the `.tres`
+stat files, joins faction/era info from the JSON dumps, and converts all
+artwork to WebP (quality 82) — ~32 MB total for the full 1568-image set.
+`site/data/` and `Alpha-Strike-Tool/` are gitignored; nothing is committed.
 
 ## Run
 
