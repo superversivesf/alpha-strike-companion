@@ -74,8 +74,12 @@ result with nginx. No local data or Python setup needed:
 docker compose up -d        # build + serve on http://localhost:7332
 ```
 
-The image is multi-stage: the data archive and Pillow live only in the build
-stage; the final image is a plain nginx serving the static site.
+The image is multi-stage: the data pipeline runs in a Python build stage, and
+the final image is an nginx serving the static site. **The cloned data
+archive is kept in the final image at `/opt/alpha-strike-tool/`** — this is
+deliberate, so the source data survives even if the upstream repository is
+taken down (rebuilding from a fresh clone would otherwise be impossible).
+This adds ~490 MB to the image (~1 GB total).
 
 ## Test
 
