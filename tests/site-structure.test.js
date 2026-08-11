@@ -26,3 +26,10 @@ test("styles.css defines the BattleTech palette", () => {
   assert.match(css, /\.pip\s*\{/);
   assert.match(css, /overflow-x\s*:\s*auto/);
 });
+
+test("styles.css is responsive for small screens", () => {
+  const css = readFileSync("site/styles.css", "utf8");
+  assert.match(css, /@media\s*\(max-width:\s*700px\)/, "missing mobile media query");
+  assert.match(css, /width:\s*min\(600px,\s*100%\)/, "card width must be fluid");
+  assert.match(css, /\.card-body\s*\{\s*flex-direction:\s*column/, "card body must stack on mobile");
+});

@@ -154,8 +154,8 @@ h1, h2, h3 { font-family: var(--font-head); letter-spacing: 0.06em; }
 
 .card {
   position: relative;
-  flex: 0 0 600px;
-  width: 600px;
+  flex: 0 1 auto;
+  width: min(600px, 100%);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -224,7 +224,7 @@ h1, h2, h3 { font-family: var(--font-head); letter-spacing: 0.06em; }
 }
 
 .card-side {
-  flex: 0 0 195px;
+  flex: 0 1 195px;
   width: 195px;
   display: flex;
   flex-direction: column;
@@ -511,4 +511,38 @@ h1, h2, h3 { font-family: var(--font-head); letter-spacing: 0.06em; }
   color: var(--muted);
   font-size: 11px;
   padding: 10px;
+}
+
+@media (max-width: 700px) {
+  .topbar { padding: 8px 10px; }
+  .brand-text h1 { font-size: 16px; }
+  .brand-sub { font-size: 10px; }
+  #search { width: 100%; }
+  .controls { width: 100%; }
+  .controls .btn { flex: 1 1 auto; }
+  .force-pv { flex: 1 1 auto; text-align: center; }
+
+  .picker-list { padding: 0 10px 10px; max-height: 240px; }
+  .picker-list li button { font-size: 12px; padding: 5px 9px; }
+
+  .roster { padding: 10px; gap: 10px; }
+
+  .card { width: 100%; }
+  .card-title { font-size: 20px; }
+  .card-variant { font-size: 12px; }
+  .card-pv { font-size: 14px; }
+
+  .card-body { flex-direction: column; }
+  .card-side {
+    flex: 0 0 auto;
+    width: 100%;
+    flex-direction: row;
+    align-items: stretch;
+  }
+  .card-art { flex: 0 0 120px; height: 120px; }
+  .card-crits { flex: 1 1 auto; }
+
+  .identity-row { font-size: 12px; gap: 10px; }
+  .damage-row { font-size: 13px; }
+  .crit-label { flex: 0 0 56px; }
 }
