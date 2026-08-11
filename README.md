@@ -64,6 +64,19 @@ npm run serve      # http://localhost:8000
 
 Or serve site/ from any static host (GitHub Pages, Netlify, S3, …).
 
+## Docker
+
+The `Dockerfile` builds the full app in one go — it clones the data archive
+(see [Data](#data)) inside the image, runs the data pipeline, and serves the
+result with nginx. No local data or Python setup needed:
+
+```
+docker compose up -d        # build + serve on http://localhost:7332
+```
+
+The image is multi-stage: the data archive and Pillow live only in the build
+stage; the final image is a plain nginx serving the static site.
+
 ## Test
 
 ```

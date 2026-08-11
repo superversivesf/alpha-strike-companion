@@ -1,0 +1,7 @@
+Alpha-Strike-Tool/
+site/data/
+node_modules/
+docs/
+tests/
+*.md
+.git/

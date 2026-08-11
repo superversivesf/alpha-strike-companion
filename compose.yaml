@@ -1,0 +1,5 @@
+services:
+  alpha-strike:
+    build: .
+    ports:
+      - "7332:80"
