@@ -176,5 +176,5 @@ export async function init({ doc, storage }) {
 }
 
 if (typeof window !== "undefined" && !window.__AS_MANUAL__) {
-  init({ doc: document, storage: makeStorage(null, window.localStorage) });
+  init({ doc: document, storage: { loadState: () => JSON.parse(localStorage.getItem("as-companion-state-v1") || "null"), saveState: s => localStorage.setItem("as-companion-state-v1", JSON.stringify(s)), exportBlob: s => ({ filename: "as-companion-state.json", text: JSON.stringify(s, null, 2) }) } });
 }

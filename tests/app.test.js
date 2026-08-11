@@ -22,7 +22,7 @@ async function boot({ state = { roster: [] } } = {}) {
   const app = await import("../site/js/app.js");
   const saved = [];
   const storage = {
-    importState: () => ({}),
+    importState: text => JSON.parse(text),
     exportBlob: () => ({}),
     loadState: () => state,
     saveState: s => saved.push(s),
@@ -108,4 +108,19 @@ test("clear force empties roster and saves", async () => {
   document.getElementById("btn-clear").dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
   assert.equal(document.querySelectorAll("#roster .card").length, 0);
   assert.deepEqual(saved.at(-1).roster, []);
+});
+
+test("import via file input renders imported roster", async () => {
+  const { document, window } = await boot();
+  const importState = { roster: [{ unitId: "atlas-as7-d", armorDamage: 2, structDamage: 1, heat: 0, crits: Array(12).fill(false) }] };
+  const file = new window.File([JSON.stringify(importState)], "test.json", { type: "application/json" });
+  file.text = async () => JSON.stringify(importState);
+  const input = document.getElementById("import-file");
+  Object.defineProperty(input, "files", { value: [file], writable: false });
+  input.dispatchEvent(new window.Event("change", { bubbles: true }));
+  await new Promise(r => setTimeout(r, 50));
+  const cards = document.querySelectorAll("#roster .card");
+  assert.equal(cards.length, 1);
+  assert.match(cards[0].querySelector(".card-title").textContent, /ATLAS/);
+  assert.equal(document.querySelectorAll(".pip.damaged").length, 3);
 });
