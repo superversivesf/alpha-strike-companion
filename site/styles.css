@@ -221,12 +221,12 @@ h1, h2, h3 { font-family: var(--font-head); letter-spacing: 0.06em; }
   width: 195px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 14px;
 }
 
 .card-art {
   flex: 0 0 auto;
-  height: 150px;
+  height: 165px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -398,7 +398,7 @@ h1, h2, h3 { font-family: var(--font-head); letter-spacing: 0.06em; }
 .pip:hover { outline: 1px solid var(--accent-strong); }
 
 .card-crits {
-  flex: 0 0 auto;
+  flex: 1 1 auto;
   border: 1px solid var(--border);
   border-radius: 4px;
   background: rgba(0, 0, 0, 0.18);
