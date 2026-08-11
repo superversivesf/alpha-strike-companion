@@ -217,10 +217,13 @@ export async function init({ doc, storage }) {
     if (card) {
       const entryId = card.dataset.entryId;
       if (e.target.dataset.action === "remove") {
+        const nextGroups = _state.groups
+          .map(g => removeUnitFromGroup(g, entryId))
+          .filter(g => g.unitIds.length > 0);
         _state = {
           ..._state,
           roster: _state.roster.filter(entry => entry.id !== entryId),
-          groups: _state.groups.map(g => removeUnitFromGroup(g, entryId)),
+          groups: nextGroups,
         };
         persist();
         renderRoster();

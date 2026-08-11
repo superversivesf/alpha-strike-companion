@@ -119,6 +119,16 @@ test("removing one duplicate unit keeps the other", async () => {
   assert.equal(document.querySelectorAll("#roster .group")[0].querySelectorAll(".card").length, 1);
 });
 
+test("removing the last unit deletes its group", async () => {
+  const { document } = await boot();
+  const first = document.querySelector("#picker-list li button");
+  first.dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
+  assert.equal(document.querySelectorAll("#roster .group").length, 1);
+  document.querySelector("#roster .card-remove").dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
+  assert.equal(document.querySelectorAll("#roster .group").length, 0);
+  assert.equal(document.querySelectorAll("#roster .card").length, 0);
+});
+
 test("picker toggle collapses the list", async () => {
   const { document } = await boot();
   const picker = document.getElementById("picker");
