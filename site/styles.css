@@ -364,7 +364,15 @@ h1, h2, h3 { font-family: var(--font-head); letter-spacing: 0.06em; }
 .stat-row b::after { content: ":"; }
 .stat-row span { color: var(--text); font-weight: 400; }
 
+.card-tracks {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.18);
+  padding: 6px 8px;
+  margin-bottom: 8px;
+}
 .track { margin-bottom: 6px; }
+.track:last-child { margin-bottom: 0; }
 .track-label {
   font-size: 10px;
   letter-spacing: 0.14em;
