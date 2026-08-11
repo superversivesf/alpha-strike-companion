@@ -2,7 +2,7 @@ import { filterUnits, uniqueTypes } from "./search.js";
 import { renderCard } from "./cards.js";
 import { initTooltips } from "./tooltips.js";
 import {
-  createEntry, damageArmor, damageStruct, setHeat, toggleCrit, slugifyUnit,
+  createEntry, damageArmor, damageStruct, setHeat, toggleCrit, setSkill, slugifyUnit,
 } from "./state.js";
 import { makeStorage } from "./storage.js";
 
@@ -128,6 +128,12 @@ export async function init({ doc, storage }) {
     }
     if (e.target.dataset.heat) {
       updateEntry(unitId, entry => setHeat(entry, e.target.dataset.heat === "S" ? "S" : Number(e.target.dataset.heat)));
+      return;
+    }
+    if (e.target.dataset.action === "set-skill") {
+      const select = card.querySelector(".skill-select");
+      if (!select) return;
+      updateEntry(unitId, entry => setSkill(entry, Number(select.value)));
       return;
     }
     if (e.target.dataset.crit) {

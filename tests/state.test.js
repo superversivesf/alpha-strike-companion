@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   slugifyUnit, createEntry, damageArmor, damageStruct,
-  setHeat, toggleCrit, isEntryValid, critTypesForUnit, critCap, tracksHeat,
+  setHeat, toggleCrit, setSkill, isEntryValid, critTypesForUnit, critCap, tracksHeat,
 } from "../site/js/state.js";
 
 const unit = {
@@ -26,6 +26,21 @@ test("createEntry starts clean", () => {
   assert.equal(e.structDamage, 0);
   assert.equal(e.heat, 0);
   assert.deepEqual(e.crits, { engine: 0, fireControl: 0, mp: 0, weapons: 0, thruster: 0, fuel: 0, crew: 0 });
+  assert.equal(e.skill, 4);
+  assert.equal(e.skillSet, false);
+});
+
+test("setSkill fixes the skill once", () => {
+  let e = createEntry(unit);
+  e = setSkill(e, 3);
+  assert.equal(e.skill, 3);
+  assert.equal(e.skillSet, true);
+  e = setSkill(e, 5);
+  assert.equal(e.skill, 5);
+  e = setSkill(e, 99);
+  assert.equal(e.skill, 6);
+  e = setSkill(e, -3);
+  assert.equal(e.skill, 0);
 });
 
 test("damageArmor click semantics and clamping", () => {
@@ -111,4 +126,6 @@ test("isEntryValid enforces bounds", () => {
   assert.equal(isEntryValid({ ...e, crits: null }, unit), false);
   assert.equal(isEntryValid({ ...e, crits: { ...e.crits, engine: 5 } }, unit), false);
   assert.equal(isEntryValid({ ...e, crits: { ...e.crits, weapons: 5 } }, unit), false);
+  assert.equal(isEntryValid({ ...e, skill: 7 }, unit), false);
+  assert.equal(isEntryValid({ ...e, skill: "3" }, unit), false);
 });

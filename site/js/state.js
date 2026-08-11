@@ -47,7 +47,14 @@ export function createEntry(unit) {
     structDamage: 0,
     heat: 0,
     crits,
+    skill: typeof unit.skill === "number" ? unit.skill : 4,
+    skillSet: false,
   };
+}
+
+export function setSkill(entry, value) {
+  const v = Math.max(0, Math.min(6, Math.floor(Number(value) || 0)));
+  return { ...entry, skill: v, skillSet: true };
 }
 
 function clickTrack(current, index) {
@@ -93,5 +100,6 @@ export function isEntryValid(entry, unit) {
     const v = entry.crits[type];
     if (typeof v !== "number" || v < 0 || v > critCap(unit, type)) return false;
   }
+  if (typeof entry.skill !== "number" || entry.skill < 0 || entry.skill > 6) return false;
   return true;
 }

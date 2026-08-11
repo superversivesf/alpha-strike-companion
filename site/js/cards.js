@@ -1,11 +1,11 @@
 import { createEntry, HEAT_LEVELS, critTypesForUnit, critCap, tracksHeat } from "./state.js";
 
 const STAT_TIPS = {
-  TP: "Type — unit classification: BM BattleMech, IM IndustrialMech, PM ProtoMech, CV Combat Vehicle, SV Support Vehicle, AF Aerospace Fighter, CF Conventional Fighter, DS Spheroid DropShip, DA Aerodyne DropShip, SC Small Craft, MS Mobile Structure, CI Conventional Infantry, BA Battle Armor",
   SZ: "Size — the unit's weight class: 1 (Light), 2 (Medium), 3 (Heavy), 4 (Assault)",
   TMM: "Target Movement Modifier — added to the Target Number of attacks made against this unit when it uses its standard movement mode",
   MV: "Movement — inches per turn. Suffixes: j = jump, t = tracked, w = wheeled, h = hover, v = VTOL, g = WiGE, n = naval, s = submersible, f = foot (infantry), a = aerospace thrust, m = motorized (infantry), i = airship",
   Role: "Tactical role of the unit (Brawler, Sniper, Scout, Juggernaut, Striker, Skirmisher, etc.)",
+  Skill: "Skill Rating — the base Target Number for the unit's attacks. Set once when the unit is deployed; lower is better",
   S: "Damage delivered at Short range (0–6\")",
   M: "Damage delivered at Medium range (7–12\")",
   L: "Damage delivered at Long range (13–24\")",
@@ -157,6 +157,54 @@ function statRow(label, value) {
   return row;
 }
 
+function identityRow(items) {
+  const row = document.createElement("div");
+  row.className = "identity-row";
+  for (const item of items) {
+    const cell = document.createElement("span");
+    cell.className = "identity-cell";
+    const lab = document.createElement("b");
+    lab.textContent = item.label;
+    addTip(lab, item.tip);
+    const val = document.createElement("span");
+    val.textContent = item.value;
+    if (item.tipValue) addTip(val, item.tipValue);
+    cell.append(lab, val);
+    row.append(cell);
+  }
+  return row;
+}
+
+function skillSetter(entry) {
+  const wrap = document.createElement("span");
+  wrap.className = "skill-setter";
+  if (entry.skillSet) {
+    const val = document.createElement("span");
+    val.className = "skill-value";
+    val.textContent = entry.skill;
+    addTip(val, "Skill Rating — set when deployed; cannot be changed during the game");
+    wrap.append(val);
+    return wrap;
+  }
+  const select = document.createElement("select");
+  select.className = "skill-select";
+  select.setAttribute("aria-label", "Set skill rating");
+  for (let i = 0; i <= 6; i++) {
+    const opt = document.createElement("option");
+    opt.value = String(i);
+    opt.textContent = String(i);
+    if (i === entry.skill) opt.selected = true;
+    select.append(opt);
+  }
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "skill-set";
+  btn.dataset.action = "set-skill";
+  btn.textContent = "Set";
+  wrap.append(select, btn);
+  return wrap;
+}
+
 function track(label, action, total, damage, tip) {
   const pips = [];
   for (let i = 0; i < total; i++) {
@@ -247,14 +295,25 @@ export function renderCard(unit, entry = createEntry(unit)) {
   const details = document.createElement("div");
   details.className = "card-details";
 
-  const stats = document.createElement("div");
-  stats.className = "card-stats";
-  stats.append(
-    statRow("TP", unit.type),
-    statRow("SZ", unit.size),
-    statRow("TMM", unit.tmm),
-    statRow("MV", unit.move),
-    statRow("Role", unit.role),
+  const identity = document.createElement("div");
+  identity.className = "card-identity";
+  identity.append(
+    identityRow([
+      { label: "TP", value: unit.type, tip: "Type — unit classification", tipValue: TYPE_TIPS[unit.type] || "Unknown type" },
+      { label: "SZ", value: unit.size, tip: STAT_TIPS.SZ },
+      { label: "TMM", value: unit.tmm, tip: STAT_TIPS.TMM },
+      { label: "MV", value: `${unit.move}"`, tip: STAT_TIPS.MV },
+    ]),
+    identityRow([
+      { label: "Role", value: unit.role, tip: STAT_TIPS.Role },
+      { label: "Skill", value: "", tip: STAT_TIPS.Skill },
+    ]),
+  );
+  identity.querySelector(".identity-row:last-child .identity-cell:last-child").append(skillSetter(entry));
+
+  const damage = document.createElement("div");
+  damage.className = "card-stats";
+  damage.append(
     statRow("S", unit.damage.s),
     statRow("M", unit.damage.m),
     statRow("L", unit.damage.l),
@@ -313,7 +372,7 @@ export function renderCard(unit, entry = createEntry(unit)) {
     abilities.append(chip);
   }
 
-  details.append(stats, tracks, crits, heat, abilities);
+  details.append(identity, damage, tracks, crits, heat, abilities);
 
   const art = document.createElement("div");
   art.className = "card-art";

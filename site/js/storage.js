@@ -42,7 +42,9 @@ export function sanitizeState(obj, unitById) {
         const n = typeof v === "number" ? Math.floor(v) : 0;
         crits[type] = Math.max(0, Math.min(critCap(unit, type), n));
       }
-      return { unitId: entry.unitId, armorDamage, structDamage, heat, crits };
+      const skill = typeof entry.skill === "number" ? Math.max(0, Math.min(6, Math.floor(entry.skill))) : (typeof unit.skill === "number" ? unit.skill : 4);
+      const skillSet = Boolean(entry.skillSet);
+      return { unitId: entry.unitId, armorDamage, structDamage, heat, crits, skill, skillSet };
     });
   return { roster };
 }

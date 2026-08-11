@@ -233,6 +233,56 @@ h1, h2, h3 { font-family: var(--font-head); letter-spacing: 0.06em; }
 .card-art img { max-width: 100%; max-height: 100%; object-fit: contain; }
 .card-art .placeholder { color: var(--muted); font-size: 26px; font-family: var(--font-head); }
 
+.card-identity {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.18);
+  padding: 5px 8px;
+  margin-bottom: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.identity-row {
+  display: flex;
+  gap: 14px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.identity-cell b {
+  color: var(--text);
+  font-weight: 700;
+  margin-right: 4px;
+}
+.identity-cell b::after { content: ":"; }
+.identity-cell span { color: var(--text); font-weight: 400; }
+
+.skill-setter { display: inline-flex; align-items: center; gap: 4px; }
+.skill-select {
+  width: 40px;
+  padding: 1px 4px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 12px;
+}
+.skill-set {
+  padding: 1px 8px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: var(--panel-2);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 11px;
+  text-transform: uppercase;
+}
+.skill-set:hover { border-color: var(--accent); color: var(--accent-strong); }
+.skill-value {
+  font-weight: 700;
+  color: var(--tan);
+}
+
 .card-stats {
   display: grid;
   grid-template-columns: 1fr 1fr;

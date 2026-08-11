@@ -11,7 +11,7 @@ const UNITS = [
 ];
 const unitById = new Map(UNITS.map(u => [u.id, u]));
 const CRITS0 = { engine: 0, fireControl: 0, mp: 0, weapons: 0, thruster: 0, fuel: 0, crew: 0 };
-const GOOD = { roster: [{ unitId: "atlas-as7-d", armorDamage: 3, structDamage: 1, heat: 2, crits: { ...CRITS0, weapons: 1 } }] };
+const GOOD = { roster: [{ unitId: "atlas-as7-d", armorDamage: 3, structDamage: 1, heat: 2, crits: { ...CRITS0, weapons: 1 }, skill: 4, skillSet: false }] };
 
 function freshLocalStorage() {
   const dom = new JSDOM("", { url: "http://localhost/" });

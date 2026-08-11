@@ -94,6 +94,19 @@ test("heat, crit, and remove actions", async () => {
   assert.equal(document.getElementById("roster-empty").style.display, "");
 });
 
+test("set-skill fixes the skill and persists", async () => {
+  const { document, saved } = await boot();
+  document.querySelector("#picker-list li button").dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
+  const select = document.querySelector('#roster .card .skill-select');
+  select.value = "3";
+  const setBtn = document.querySelector('#roster .card .skill-set');
+  setBtn.dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
+  assert.equal(document.querySelector('#roster .card .skill-value').textContent, "3");
+  assert.equal(document.querySelectorAll('#roster .card .skill-select').length, 0);
+  assert.equal(saved.at(-1).roster[0].skill, 3);
+  assert.equal(saved.at(-1).roster[0].skillSet, true);
+});
+
 test("picker toggle collapses the list", async () => {
   const { document } = await boot();
   const picker = document.getElementById("picker");
