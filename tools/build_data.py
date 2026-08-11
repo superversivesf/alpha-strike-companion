@@ -7,7 +7,11 @@ import shutil
 import sys
 import unicodedata
 
-from PIL import Image
+try:
+    from PIL import Image
+    HAVE_PIL = True
+except ImportError:
+    HAVE_PIL = False
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ARCHIVE_UNITS = os.path.join(ROOT, "Alpha-Strike-Tool", "Units")
@@ -152,6 +156,11 @@ def sanity_check(units, sprites_dir):
 
 
 def to_webp(src, dst):
+    if not HAVE_PIL:
+        raise RuntimeError(
+            "Pillow is required to convert artwork to WebP. "
+            "Install it with: pip install pillow  (or: pipx install pillow / apt install python3-pil)"
+        )
     with Image.open(src) as im:
         im = im.convert("RGB")
         im.save(dst, "WEBP", quality=WEBP_QUALITY, method=6)

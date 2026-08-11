@@ -31,12 +31,24 @@ it into the project root **before** running the build:
 git clone --depth 1 https://github.com/treverhw/Alpha-Strike-Tool.git
 ```
 
+The build script expects this clone at `Alpha-Strike-Tool/` in the project
+root (it is gitignored, so it will not be committed).
+
 ## Build (one time)
 
 ```
 npm install        # dev deps only (jsdom)
-pip install pillow # image conversion to WebP
+pip install pillow # image conversion to WebP (required)
 npm run build:data # python3 tools/build_data.py → site/data/
+```
+
+If `pip install pillow` is blocked by your system (PEP 668 "externally
+managed environment" — common on Debian/Ubuntu), install it via:
+
+```
+apt install python3-pil   # Debian/Ubuntu
+sudo pacman -S python-pillow   # Arch
+brew install pillow           # macOS
 ```
 
 The build reads `Alpha-Strike-Tool/` (the archive above), parses the `.tres`
