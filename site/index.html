@@ -17,9 +17,6 @@
     </div>
     <div class="controls">
       <input id="search" type="search" placeholder="Search units…" autocomplete="off">
-      <select id="type-filter" aria-label="Filter by type">
-        <option value="">All types</option>
-      </select>
       <span id="force-pv" class="force-pv">Force PV: 0</span>
       <button id="btn-clear" class="btn btn-danger" type="button">Clear force</button>
       <button id="btn-export" class="btn" type="button">Export</button>
@@ -32,6 +29,23 @@
     <div class="picker-head">
       <h2>UNIT PICKER</h2>
       <button id="picker-toggle" class="btn btn-small" type="button">Hide ▾</button>
+    </div>
+    <div class="picker-filters">
+      <select id="type-filter" aria-label="Filter by type">
+        <option value="">All types</option>
+      </select>
+      <select id="era-filter" aria-label="Filter by era">
+        <option value="">All eras</option>
+      </select>
+      <select id="side-filter" aria-label="Filter by side">
+        <option value="">All sides</option>
+      </select>
+      <select id="role-filter" aria-label="Filter by role">
+        <option value="">All roles</option>
+      </select>
+      <select id="size-filter" aria-label="Filter by size">
+        <option value="">All sizes</option>
+      </select>
     </div>
     <ul id="picker-list" class="picker-list"></ul>
   </section>

@@ -5,9 +5,9 @@ import { JSDOM } from "jsdom";
 import { slugifyUnit } from "../site/js/state.js";
 
 const UNITS = [
-  { id: slugifyUnit("ATLAS", "AS7-D"), class: "ATLAS", variant: "AS7-D", type: "BM", size: 4, tmm: 1, move: "6", role: "Juggernaut", skill: 4, damage: { s: 5, m: 5, l: 2 }, overheat: 0, armor: 10, structure: 8, pv: 52, abilities: [], image: "" },
-  { id: slugifyUnit("ATLAS", "AS7-K"), class: "ATLAS", variant: "AS7-K", type: "BM", size: 4, tmm: 1, move: "6", role: "Sniper", skill: 4, damage: { s: 4, m: 4, l: 3 }, overheat: 0, armor: 10, structure: 8, pv: 49, abilities: [], image: "" },
-  { id: slugifyUnit("Trooper", "TP-1R"), class: "Trooper", variant: "TP-1R", type: "UNK", size: 1, tmm: 0, move: "12\"", role: "Scout", skill: 4, damage: { s: 1, m: 1, l: 0 }, overheat: 0, armor: 2, structure: 1, pv: 14, abilities: [], image: "" },
+  { id: slugifyUnit("ATLAS", "AS7-D"), class: "ATLAS", variant: "AS7-D", type: "BM", size: 4, tmm: 1, move: "6", role: "Juggernaut", skill: 4, damage: { s: 5, m: 5, l: 2 }, overheat: 0, armor: 10, structure: 8, pv: 52, abilities: [], image: "", tech: "Inner Sphere", era: "Star League" },
+  { id: slugifyUnit("ATLAS", "AS7-K"), class: "ATLAS", variant: "AS7-K", type: "BM", size: 4, tmm: 1, move: "6", role: "Sniper", skill: 4, damage: { s: 4, m: 4, l: 3 }, overheat: 0, armor: 10, structure: 8, pv: 49, abilities: [], image: "", tech: "Inner Sphere", era: "Star League" },
+  { id: slugifyUnit("Trooper", "TP-1R"), class: "Trooper", variant: "TP-1R", type: "UNK", size: 1, tmm: 0, move: "12\"", role: "Scout", skill: 4, damage: { s: 1, m: 1, l: 0 }, overheat: 0, armor: 2, structure: 1, pv: 14, abilities: [], image: "", tech: "Clan", era: "Clan Invasion" },
 ];
 
 async function boot({ state = { roster: [] } } = {}) {
@@ -31,13 +31,64 @@ async function boot({ state = { roster: [] } } = {}) {
   return { window, document: window.document, saved, app };
 }
 
-test("init loads units, populates type filter and picker", async () => {
+test("init loads units, populates filters and picker", async () => {
   const { document } = await boot();
-  const options = [...document.querySelectorAll("#type-filter option")].map(o => o.value);
-  assert.deepEqual(options, ["", "BM"]);
+  const typeOptions = [...document.querySelectorAll("#type-filter option")].map(o => o.value);
+  assert.deepEqual(typeOptions, ["", "BM"]);
+  const eraOptions = [...document.querySelectorAll("#era-filter option")].map(o => o.value);
+  assert.deepEqual(eraOptions, ["", "Clan Invasion", "Star League"]);
+  const sideOptions = [...document.querySelectorAll("#side-filter option")].map(o => o.value);
+  assert.deepEqual(sideOptions, ["", "Clan", "Inner Sphere"]);
+  const roleOptions = [...document.querySelectorAll("#role-filter option")].map(o => o.value);
+  assert.deepEqual(roleOptions, ["", "Juggernaut", "Scout", "Sniper"]);
+  const sizeOptions = [...document.querySelectorAll("#size-filter option")].map(o => o.value);
+  assert.deepEqual(sizeOptions, ["", "1", "2", "3", "4"]);
   const items = document.querySelectorAll("#picker-list li");
   assert.equal(items.length, 3);
   assert.match(items[0].textContent, /ATLAS/);
+});
+
+test("picker filters narrow the unit list", async () => {
+  const { document } = await boot();
+  const era = document.getElementById("era-filter");
+  era.value = "Clan Invasion";
+  era.dispatchEvent(new window.Event("change", { bubbles: true }));
+  let items = document.querySelectorAll("#picker-list li");
+  assert.equal(items.length, 1);
+  assert.match(items[0].textContent, /Trooper/);
+  era.value = "";
+  era.dispatchEvent(new window.Event("change", { bubbles: true }));
+
+  const side = document.getElementById("side-filter");
+  side.value = "Inner Sphere";
+  side.dispatchEvent(new window.Event("change", { bubbles: true }));
+  items = document.querySelectorAll("#picker-list li");
+  assert.equal(items.length, 2);
+  side.value = "";
+  side.dispatchEvent(new window.Event("change", { bubbles: true }));
+
+  const role = document.getElementById("role-filter");
+  role.value = "Sniper";
+  role.dispatchEvent(new window.Event("change", { bubbles: true }));
+  items = document.querySelectorAll("#picker-list li");
+  assert.equal(items.length, 1);
+  assert.match(items[0].textContent, /AS7-K/);
+  role.value = "";
+  role.dispatchEvent(new window.Event("change", { bubbles: true }));
+
+  const size = document.getElementById("size-filter");
+  size.value = "1";
+  size.dispatchEvent(new window.Event("change", { bubbles: true }));
+  items = document.querySelectorAll("#picker-list li");
+  assert.equal(items.length, 1);
+  assert.match(items[0].textContent, /Trooper/);
+
+  // Combined: Clan + size 1
+  side.value = "Clan";
+  side.dispatchEvent(new window.Event("change", { bubbles: true }));
+  items = document.querySelectorAll("#picker-list li");
+  assert.equal(items.length, 1);
+  assert.match(items[0].textContent, /Trooper/);
 });
 
 test("search narrows picker; type filter excludes UNK", async () => {

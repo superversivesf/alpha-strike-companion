@@ -157,11 +157,27 @@ def to_webp(src, dst):
         im.save(dst, "WEBP", quality=WEBP_QUALITY, method=6)
 
 
+MUL_ERA_NAMES = {
+    9: "Age of War",
+    10: "Star League",
+    11: "Early Succession Wars",
+    13: "Late Succession Wars",
+    14: "Clan Invasion",
+    15: "Civil War",
+    16: "Jihad",
+    247: "Early Republic",
+    254: "Late Republic",
+    255: "Dark Age",
+    256: "ilClan",
+    257: "Emergence",
+}
+
+
 def load_tech_lookup(json_data_dir):
-    """Map (Class, Variant) -> technology name from the MUL JSON dumps."""
-    tech = {}
+    """Map (Class, Variant) -> {tech, era} from the MUL JSON dumps."""
+    lookup = {}
     if not os.path.isdir(json_data_dir):
-        return tech
+        return lookup
     for fn in os.listdir(json_data_dir):
         if not fn.endswith(".json"):
             continue
@@ -170,8 +186,11 @@ def load_tech_lookup(json_data_dir):
         for u in d.get("Units", []):
             cls = (u.get("Class") or "").strip().upper()
             var = (u.get("Variant") or "").strip()
-            tech[(cls, var)] = (u.get("Technology") or {}).get("Name", "")
-    return tech
+            lookup[(cls, var)] = {
+                "tech": (u.get("Technology") or {}).get("Name", ""),
+                "era": MUL_ERA_NAMES.get(u.get("EraId"), ""),
+            }
+    return lookup
 
 
 def build(units_dir, sprites_dir, site_data_dir, json_data_dir=None):
@@ -189,7 +208,9 @@ def build(units_dir, sprites_dir, site_data_dir, json_data_dir=None):
     tech = load_tech_lookup(json_data_dir) if json_data_dir else {}
     for u in units:
         key = (u["class"].strip().upper(), u["variant"].strip())
-        u["tech"] = tech.get(key, "")
+        info = tech.get(key, {})
+        u["tech"] = info.get("tech", "")
+        u["era"] = info.get("era", "")
 
     units.sort(key=lambda u: (u["class"].lower(), u["variant"].lower()))
     sanity_check(units, sprites_dir)

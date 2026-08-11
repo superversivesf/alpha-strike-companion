@@ -1,4 +1,4 @@
-import { filterUnits, uniqueTypes } from "./search.js";
+import { filterUnits, uniqueTypes, uniqueValues } from "./search.js";
 import { renderCard } from "./cards.js";
 import { initTooltips } from "./tooltips.js";
 import {
@@ -101,9 +101,13 @@ function renderGroupSection(group, entries) {
 function renderPicker() {
   const query = el("search").value;
   const type = el("type-filter").value;
+  const era = el("era-filter").value;
+  const side = el("side-filter").value;
+  const role = el("role-filter").value;
+  const size = el("size-filter").value;
   const list = el("picker-list");
   list.innerHTML = "";
-  const matches = filterUnits(_units, { query, type });
+  const matches = filterUnits(_units, { query, type, era, side, role, size });
   for (const unit of matches) {
     const li = _doc.createElement("li");
     const btn = _doc.createElement("button");
@@ -181,15 +185,34 @@ export async function init({ doc, storage }) {
   _groupCounter = _state.groups.length;
 
   const typeFilter = el("type-filter");
-  for (const type of uniqueTypes(_units)) {
+  const eraFilter = el("era-filter");
+  const sideFilter = el("side-filter");
+  const roleFilter = el("role-filter");
+  const sizeFilter = el("size-filter");
+
+  function populateFilter(select, values) {
+    for (const v of values) {
+      const opt = _doc.createElement("option");
+      opt.value = v;
+      opt.textContent = v;
+      select.append(opt);
+    }
+  }
+  populateFilter(typeFilter, uniqueTypes(_units));
+  populateFilter(eraFilter, uniqueValues(_units, "era"));
+  populateFilter(sideFilter, uniqueValues(_units, "tech"));
+  populateFilter(roleFilter, uniqueValues(_units, "role"));
+  for (const size of ["1", "2", "3", "4"]) {
     const opt = _doc.createElement("option");
-    opt.value = type;
-    opt.textContent = type;
-    typeFilter.append(opt);
+    opt.value = size;
+    opt.textContent = `Size ${size}`;
+    sizeFilter.append(opt);
   }
 
   el("search").addEventListener("input", renderPicker);
-  typeFilter.addEventListener("change", renderPicker);
+  for (const f of [typeFilter, eraFilter, sideFilter, roleFilter, sizeFilter]) {
+    f.addEventListener("change", renderPicker);
+  }
 
   el("picker-list").addEventListener("click", e => {
     const btn = e.target.closest("button[data-unit-id]");

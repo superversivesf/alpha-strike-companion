@@ -109,6 +109,22 @@ h1, h2, h3 { font-family: var(--font-head); letter-spacing: 0.06em; }
 }
 .picker-head h2 { margin: 0; font-size: 14px; color: var(--muted); }
 
+.picker-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0 18px 10px;
+}
+.picker-filters select {
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 12px;
+  min-width: 110px;
+}
+
 .picker-list {
   list-style: none;
   margin: 0;
@@ -587,6 +603,8 @@ h1, h2, h3 { font-family: var(--font-head); letter-spacing: 0.06em; }
 
   .picker-list { padding: 0 10px 10px; max-height: 240px; }
   .picker-list li button { font-size: 12px; padding: 5px 9px; }
+  .picker-filters { padding: 0 10px 8px; }
+  .picker-filters select { flex: 1 1 45%; min-width: 0; }
 
   .roster { padding: 10px; gap: 10px; }
   .group { padding: 8px; }
