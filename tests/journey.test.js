@@ -151,6 +151,56 @@ test("JOURNEY: units auto-group into Lances (IS) and Stars (Clan)", async () => 
   assert.equal(saved.groups[1].size, 4);
 });
 
+test("JOURNEY: group names are fixed at creation and stable", async () => {
+  const units = [
+    { ...UNITS[0], tech: "Clan", id: "clan-0", class: "ATLAS", variant: "AS7-A" },
+    { ...UNITS[0], tech: "Clan", id: "clan-1", class: "ATLAS", variant: "AS7-B" },
+  ];
+  const html = readFileSync("site/index.html", "utf8");
+  const dom = new JSDOM(html, { url: "http://localhost/", pretendToBeVisual: true });
+  const { window } = dom;
+  globalThis.window = window;
+  globalThis.document = window.document;
+  globalThis.fetch = async () => ({ ok: true, json: async () => ({ units }) });
+  window.__AS_MANUAL__ = true;
+  const app = await import("../site/js/app.js");
+  const storage = makeStorage(new Map(units.map(u => [u.id, u])), window.localStorage);
+  await app.init({ doc: window.document, storage });
+
+  // Fill Star 1 (5 Clan mechs: add 5 clones)
+  for (let i = 0; i < 5; i++) {
+    click(document.querySelector("#picker-list li button"), window);
+  }
+  let groups = document.querySelectorAll("#roster .group");
+  assert.equal(groups.length, 1);
+  assert.equal(groups[0].querySelector(".group-tab").textContent, "Star 1");
+
+  // Create a second star: names must stay stable (no "Star 2" on the first)
+  const search = document.getElementById("search");
+  search.value = "AS7-B";
+  search.dispatchEvent(new window.Event("input", { bubbles: true }));
+  click(document.querySelector("#picker-list li button"), window);
+  groups = document.querySelectorAll("#roster .group");
+  assert.equal(groups.length, 2);
+  assert.equal(groups[0].querySelector(".group-tab").textContent, "Star 1");
+  assert.equal(groups[1].querySelector(".group-tab").textContent, "Star 2");
+
+  // Third star: first two must remain Star 1 / Star 2 — fill Star 2 first
+  search.value = "AS7-A";
+  search.dispatchEvent(new window.Event("input", { bubbles: true }));
+  for (let i = 0; i < 4; i++) {
+    click(document.querySelector("#picker-list li button"), window);
+  }
+  search.value = "AS7-B";
+  search.dispatchEvent(new window.Event("input", { bubbles: true }));
+  click(document.querySelector("#picker-list li button"), window);
+  groups = document.querySelectorAll("#roster .group");
+  assert.equal(groups.length, 3);
+  assert.equal(groups[0].querySelector(".group-tab").textContent, "Star 1");
+  assert.equal(groups[1].querySelector(".group-tab").textContent, "Star 2");
+  assert.equal(groups[2].querySelector(".group-tab").textContent, "Star 3");
+});
+
 test("JOURNEY: search and type-filter interaction", async () => {
   const { window, document } = await boot();
   const search = document.getElementById("search");

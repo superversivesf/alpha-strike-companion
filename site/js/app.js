@@ -31,9 +31,9 @@ function groupLabel(group) {
   return "Group";
 }
 
-function defaultGroupName(group) {
+function nameGroup(group) {
   const label = groupLabel(group);
-  const n = _state.groups.filter(g => groupLabel(g) === label && g.id !== group.id).length + 1;
+  const n = _state.groups.filter(g => groupLabel(g) === label).length + 1;
   return `${label} ${n}`;
 }
 
@@ -53,7 +53,7 @@ function renderGroupSection(group, entries) {
 
   const tab = _doc.createElement("div");
   tab.className = "group-tab";
-  tab.textContent = group ? (group.name || defaultGroupName(group)) : "UNGROUPED";
+  tab.textContent = group ? (group.name || groupLabel(group)) : "UNGROUPED";
   section.append(tab);
 
   const head = _doc.createElement("div");
@@ -61,7 +61,7 @@ function renderGroupSection(group, entries) {
   if (group) {
     const nameInput = _doc.createElement("input");
     nameInput.className = "group-name";
-    nameInput.value = group.name || defaultGroupName(group);
+    nameInput.value = group.name || groupLabel(group);
     nameInput.setAttribute("aria-label", "Group name");
     head.append(nameInput);
     const type = _doc.createElement("span");
@@ -203,6 +203,7 @@ export async function init({ doc, storage }) {
       groups = groups.map(g => (g.id === target.id ? addUnitToGroup(g, entry.id) : g));
     } else {
       const g = createGroup(unit);
+      g.name = nameGroup(g);
       g.unitIds = [entry.id];
       groups = [...groups, g];
     }
