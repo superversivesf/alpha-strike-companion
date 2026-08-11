@@ -18,11 +18,8 @@ function el(id) {
 }
 
 function persist() {
-    _storage.saveState(_state); return;
-  // sync save
-  // sync save
+  _storage.saveState(_state);
 }
-
 function renderPicker() {
   const query = el("search").value;
   const type = el("type-filter").value;
@@ -100,7 +97,7 @@ export async function init({ doc, storage }) {
     const unit = _unitById.get(btn.dataset.unitId);
     if (!unit) return;
     _state = { ..._state, roster: [..._state.roster, createEntry(unit)] };
-    /* persist on mutation only */
+    persist();
     renderRoster();
     /* no re-render of picker */
   });

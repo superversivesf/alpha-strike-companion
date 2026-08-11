@@ -56,7 +56,7 @@ test("search narrows picker; type filter excludes UNK", async () => {
 });
 
 test("adding units renders cards and updates force PV", async () => {
-  const { document } = await boot();
+  const { document, saved } = await boot();
   const first = document.querySelector("#picker-list li button");
   first.dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
   first.dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
@@ -64,6 +64,8 @@ test("adding units renders cards and updates force PV", async () => {
   assert.equal(cards.length, 2);
   assert.equal(document.getElementById("force-pv").textContent, "Force PV: 104");
   assert.equal(document.getElementById("roster-empty").style.display, "none");
+  assert.equal(saved.length, 2);
+  assert.equal(saved[0].roster.length, 1);
 });
 
 test("roster click delegation applies armor damage and saves", async () => {
@@ -72,8 +74,8 @@ test("roster click delegation applies armor damage and saves", async () => {
   const pip = document.querySelector('#roster .card .pip[data-action="armor"][data-index="2"]');
   pip.dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
   assert.equal(document.querySelectorAll('#roster .card .pip[data-action="armor"].damaged').length, 3);
-  assert.equal(saved.length, 1);
-  assert.equal(saved[0].roster[0].armorDamage, 3);
+  assert.equal(saved.length, 2);
+  assert.equal(saved[1].roster[0].armorDamage, 3);
 });
 
 test("heat, crit, and remove actions", async () => {
