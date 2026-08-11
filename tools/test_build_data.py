@@ -162,6 +162,26 @@ class TestParseTres(unittest.TestCase):
         self.assertEqual(rec["move"], '36"g/6a')
         self.assertEqual(rec["abilities"], ["BOMB1", "FUEL4", 'LAM(36"g/6a)'])
 
+
+    def test_latin1_encoding(self):
+        import tempfile, shutil
+        tmpdir = tempfile.mkdtemp()
+        tres_path = os.path.join(tmpdir, 'test.tres')
+        raw = b'[resource]\n'
+        raw += b'title = "ARA' + bytes([0xd1]) + b'A"\n'
+        raw += b'variant = "MILITIAMECH"\n'
+        raw += b'pv = 10\n'
+        raw += b'type = "BM"\n'
+        raw += b'armor = 2\n'
+        raw += b'struct = 1\n'
+        with open(tres_path, 'wb') as f:
+            f.write(raw)
+        with open(tres_path, 'r', encoding='latin-1') as f:
+            lines = f.read().splitlines()
+        rec = bd.build_record(tres_path, lines, set())
+        self.assertEqual(rec['class'], 'ARA' + chr(0xd1) + 'A')
+        self.assertEqual(rec['id'], 'arana-militiamech')
+        shutil.rmtree(tmpdir)
     def test_missing_optional_numerics_default_to_zero(self):
         lines = FIXTURE_TRES.splitlines()
         lines = [ln for ln in lines if not ln.startswith("damageS") and not ln.startswith("sz")]

@@ -155,7 +155,7 @@ def build(units_dir, sprites_dir, site_data_dir):
             if not fn.endswith(".tres"):
                 continue
             path = os.path.join(dirpath, fn)
-            with open(path, encoding="utf-8", errors="replace") as f:
+            with open(path, encoding="latin-1") as f:
                 lines = f.read().splitlines()
             units.append(build_record(path, lines, image_set))
 
