@@ -382,6 +382,23 @@ export function renderCard(unit, entry = createEntry(unit)) {
     track("STRUCTURE", "struct", unit.structure, entry.structDamage, "Structure points — click pips to mark damage. Any hit that damages Structure triggers a critical hit check (as does a natural 12 attack roll)."),
   );
 
+  const special = document.createElement("div");
+  special.className = "card-special";
+  const specialLabel = document.createElement("div");
+  specialLabel.className = "track-label";
+  specialLabel.textContent = "Special:";
+  addTip(specialLabel, "Special abilities — see the Alpha Strike Commander's Edition rulebook for full descriptions");
+  const chips = document.createElement("div");
+  chips.className = "card-abilities";
+  for (const ability of unit.abilities || []) {
+    const chip = document.createElement("span");
+    chip.className = "ability";
+    chip.textContent = ability;
+    addTip(chip, abilityTip(ability));
+    chips.append(chip);
+  }
+  special.append(specialLabel, chips);
+
   const crits = document.createElement("div");
   crits.className = "card-crits";
   const critLabel = document.createElement("div");
@@ -395,17 +412,7 @@ export function renderCard(unit, entry = createEntry(unit)) {
   }
   crits.append(critLabel, critGrid);
 
-  const abilities = document.createElement("footer");
-  abilities.className = "card-abilities";
-  for (const ability of unit.abilities || []) {
-    const chip = document.createElement("span");
-    chip.className = "ability";
-    chip.textContent = ability;
-    addTip(chip, abilityTip(ability));
-    abilities.append(chip);
-  }
-
-  details.append(identity, damage, ovHeat, tracks, crits, abilities);
+  details.append(identity, damage, ovHeat, tracks, special, crits);
 
   const art = document.createElement("div");
   art.className = "card-art";

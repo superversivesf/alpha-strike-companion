@@ -418,13 +418,16 @@ h1, h2, h3 { font-family: var(--font-head); letter-spacing: 0.06em; }
   border-color: var(--tan);
 }
 
-.card-abilities {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  margin-top: auto;
-  padding-top: 6px;
+.card-special {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.18);
+  padding: 6px 8px;
+  margin-bottom: 8px;
 }
+.card-special .track-label { margin-bottom: 4px; }
+
+.card-abilities { display: flex; flex-wrap: wrap; gap: 4px; }
 .ability {
   font-size: 10px;
   padding: 2px 6px;
