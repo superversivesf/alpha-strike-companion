@@ -5,6 +5,16 @@ Master Unit List archive, deploy them as scrollable cards, and track
 armor/structure damage, heat, and crits during a game. State auto-saves to
 localStorage; export/import JSON transfers a force between devices.
 
+> **Copyright disclaimer**
+> This project is an unofficial fan tool for personal use. BattleTech, Alpha
+> Strike, and all related unit names, stats, and artwork are the property of
+> their respective owners (The Topps Company / Catalyst Game Labs).
+> The unit data and artwork are **not** included in this repository — they are
+> generated locally by the data pipeline from the Master Unit List archive
+> (see [Data](#data)). This project may **not** be sold, monetized, or used
+> commercially in any form, and redistributing the artwork or game data is
+> not permitted without permission from the rights holders.
+
 ## Data
 
 Unit data (6888 variants) and artwork come from the Master Unit List archive
