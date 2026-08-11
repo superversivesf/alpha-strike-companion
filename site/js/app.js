@@ -33,7 +33,7 @@ function groupLabel(group) {
 
 function defaultGroupName(group) {
   const label = groupLabel(group);
-  const n = _state.groups.filter(g => groupLabel(g) === label).length + 1;
+  const n = _state.groups.filter(g => groupLabel(g) === label && g.id !== group.id).length + 1;
   return `${label} ${n}`;
 }
 
