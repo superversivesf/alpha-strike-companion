@@ -138,6 +138,7 @@ h1, h2, h3 { font-family: var(--font-head); letter-spacing: 0.06em; }
 
 .roster {
   display: flex;
+  flex-wrap: wrap;
   gap: 16px;
   overflow-x: auto;
   padding: 18px;
@@ -401,7 +402,7 @@ h1, h2, h3 { font-family: var(--font-head); letter-spacing: 0.06em; }
   border: 1px solid var(--border);
   border-radius: 4px;
   background: rgba(0, 0, 0, 0.18);
-  padding: 6px 8px 2px;
+  padding: 6px 8px 4px;
   align-self: stretch;
 }
 .crit-grid { display: flex; flex-direction: column; gap: 3px; }
@@ -433,7 +434,7 @@ h1, h2, h3 { font-family: var(--font-head); letter-spacing: 0.06em; }
   border: 1px solid var(--border);
   border-radius: 4px;
   background: rgba(0, 0, 0, 0.18);
-  padding: 6px 8px;
+  padding: 6px 8px 10px;
   margin-bottom: 8px;
 }
 .card-special .track-label { margin-bottom: 4px; }
