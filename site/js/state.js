@@ -154,3 +154,7 @@ export function isEntryValid(entry, unit) {
   if (typeof entry.skill !== "number" || entry.skill < 0 || entry.skill > 6) return false;
   return true;
 }
+
+export function isEntryDestroyed(entry, unit) {
+  return entry.armorDamage >= unit.armor && entry.structDamage >= unit.structure;
+}

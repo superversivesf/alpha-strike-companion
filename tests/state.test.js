@@ -4,7 +4,7 @@ import {
   slugifyUnit, createEntry, damageArmor, damageStruct,
   setHeat, toggleCrit, setSkill, isEntryValid, critTypesForUnit, critCap, tracksHeat,
   isClanUnit, groupSizeForUnit, groupNameForUnit, createGroup,
-  addUnitToGroup, removeUnitFromGroup, setGroupName, isGroupValid,
+  addUnitToGroup, removeUnitFromGroup, setGroupName, isGroupValid, isEntryDestroyed,
 } from "../site/js/state.js";
 
 const unit = {
@@ -212,4 +212,12 @@ test("addUnitToGroup rejects duplicate unitIds", () => {
   const g2 = addUnitToGroup(g, "atlas-as7-d");
   const g3 = addUnitToGroup(g2, "atlas-as7-d");
   assert.equal(g3.unitIds.length, 1);
+});
+
+test("isEntryDestroyed checks full armor and structure damage", () => {
+  let e = createEntry(unit);
+  assert.equal(isEntryDestroyed(e, unit), false);
+  e = { ...e, armorDamage: unit.armor, structDamage: unit.structure };
+  assert.equal(isEntryDestroyed(e, unit), true);
+  assert.equal(isEntryDestroyed({ ...e, armorDamage: unit.armor - 1 }, unit), false);
 });
