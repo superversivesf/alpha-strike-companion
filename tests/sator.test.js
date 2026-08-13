@@ -40,6 +40,11 @@ test("effectiveTargetTmm: stationary forces 0", () => {
   assert.equal(effectiveTargetTmm(atlas, entry, "stationary", null), 0);
 });
 
+test("effectiveTargetTmm: immobile forces 0 even with override", () => {
+  assert.equal(effectiveTargetTmm(atlas, entry, "immobile", null), 0);
+  assert.equal(effectiveTargetTmm(atlas, entry, "immobile", 3), 0);
+});
+
 test("effectiveTargetTmm: full TMM when moving", () => {
   assert.equal(effectiveTargetTmm(atlas, entry, "walk", null), 1);
 });

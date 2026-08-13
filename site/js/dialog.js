@@ -78,6 +78,25 @@ function buildDialog(doc) {
   target.className = "sator-section sator-target";
   const tgtLegend = doc.createElement("legend");
   tgtLegend.textContent = "Target";
+  const tgtMove = doc.createElement("div");
+  tgtMove.className = "sator-row";
+  const tgtMoveLabel = doc.createElement("label");
+  tgtMoveLabel.textContent = "Movement";
+  const tgtMoveGroup = doc.createElement("div");
+  tgtMoveGroup.className = "sator-radio-group";
+  for (const [value, label] of [["stationary", "Stationary"], ["moved", "Moved"], ["jump", "Jump"], ["immobile", "Immobile"]]) {
+    const l = doc.createElement("label");
+    const r = doc.createElement("input");
+    r.type = "radio";
+    r.name = "sator-target-move";
+    r.value = value;
+    if (value === "moved") r.checked = true;
+    const s = doc.createElement("span");
+    s.textContent = label;
+    l.append(r, s);
+    tgtMoveGroup.append(l);
+  }
+  tgtMove.append(tgtMoveLabel, tgtMoveGroup);
   const tmmRow = doc.createElement("div");
   tmmRow.className = "sator-row";
   const tmmLabel = doc.createElement("label");
@@ -97,25 +116,6 @@ function buildDialog(doc) {
     tmmGroup.append(l);
   }
   tmmRow.append(tmmLabel, tmmGroup);
-  const tgtMove = doc.createElement("div");
-  tgtMove.className = "sator-row";
-  const tgtMoveLabel = doc.createElement("label");
-  tgtMoveLabel.textContent = "Movement";
-  const tgtMoveGroup = doc.createElement("div");
-  tgtMoveGroup.className = "sator-radio-group";
-  for (const [value, label] of [["stationary", "Stationary"], ["walk", "Walk"], ["run", "Run"], ["jump", "Jump"]]) {
-    const l = doc.createElement("label");
-    const r = doc.createElement("input");
-    r.type = "radio";
-    r.name = "sator-target-move";
-    r.value = value;
-    if (value === "walk") r.checked = true;
-    const s = doc.createElement("span");
-    s.textContent = label;
-    l.append(r, s);
-    tgtMoveGroup.append(l);
-  }
-  tgtMove.append(tgtMoveLabel, tgtMoveGroup);
   const terrainRow = doc.createElement("div");
   terrainRow.className = "sator-row";
   const terrainLabel = doc.createElement("label");
@@ -131,7 +131,7 @@ function buildDialog(doc) {
     terrainSel.append(opt);
   }
   terrainRow.append(terrainLabel, terrainSel);
-  target.append(tgtLegend, tmmRow, tgtMove, terrainRow);
+  target.append(tgtLegend, tgtMove, tmmRow, terrainRow);
 
   const range = doc.createElement("fieldset");
   range.className = "sator-section sator-range";
@@ -282,7 +282,7 @@ function buildDialog(doc) {
     }
     const m = dialog.querySelector('input[name="sator-atk-move"][value="walk"]');
     if (m) m.checked = true;
-    const tm = dialog.querySelector('input[name="sator-target-move"][value="walk"]');
+    const tm = dialog.querySelector('input[name="sator-target-move"][value="moved"]');
     if (tm) tm.checked = true;
     const r = dialog.querySelector('input[name="sator-range"][value="S"]');
     if (r) r.checked = true;
@@ -319,9 +319,9 @@ function buildDialog(doc) {
   const tgtMoveGroupEl = tgtMoveGroup;
   tgtMoveGroupEl.addEventListener("change", e => {
     if (e.target.name === "sator-target-move") {
-      const stationary = e.target.value === "stationary";
-      for (const r of dialog.querySelectorAll('input[name="sator-tmm"]')) r.disabled = stationary;
-      if (stationary) {
+      const noTmm = e.target.value === "stationary" || e.target.value === "immobile";
+      for (const r of dialog.querySelectorAll('input[name="sator-tmm"]')) r.disabled = noTmm;
+      if (noTmm) {
         const tmm0 = dialog.querySelector('input[name="sator-tmm"][value="0"]');
         if (tmm0) tmm0.checked = true;
       }

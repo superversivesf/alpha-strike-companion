@@ -121,6 +121,33 @@ test("target stationary zeros TMM and lowers TN", () => {
   assert.equal(tmm0.checked, true, "stationary must reset selection to TMM 0");
 });
 
+test("target immobile zeros TMM like stationary", () => {
+  const doc = setup();
+  openSatorDialog({ doc, attacker: atlas, attackerEntry: entry });
+  const overlay = ensureSatorDialog(doc);
+  const tmm2 = overlay.querySelector('input[name="sator-tmm"][value="2"]');
+  tmm2.checked = true;
+  const immobile = overlay.querySelector('input[name="sator-target-move"][value="immobile"]');
+  immobile.checked = true;
+  immobile.dispatchEvent(new doc.defaultView.Event("change", { bubbles: true }));
+  const tn = Number(overlay.querySelector("#sator-tn").textContent);
+  assert.equal(tn, 4); // skill 4, tmm zeroed
+  assert.equal(tmm2.disabled, true);
+  assert.equal(overlay.querySelector('input[name="sator-tmm"][value="0"]').checked, true);
+});
+
+test("moved target keeps selected TMM", () => {
+  const doc = setup();
+  openSatorDialog({ doc, attacker: atlas, attackerEntry: entry });
+  const overlay = ensureSatorDialog(doc);
+  const tmm3 = overlay.querySelector('input[name="sator-tmm"][value="3"]');
+  tmm3.checked = true;
+  tmm3.dispatchEvent(new doc.defaultView.Event("change", { bubbles: true }));
+  const tn = Number(overlay.querySelector("#sator-tn").textContent);
+  assert.equal(tn, 7); // skill 4 + tmm 3
+  assert.equal(tmm3.disabled, false);
+});
+
 test("SRCH attacker disables and zeroes the darkness toggle", () => {
   const doc = setup();
   const srchAtlas = { ...atlas, abilities: ["SRCH"] };

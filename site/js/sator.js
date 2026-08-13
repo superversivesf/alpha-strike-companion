@@ -20,7 +20,7 @@ export function terrainModifier(terrain) {
 }
 
 export function effectiveTargetTmm(target, targetEntry, targetMovement, override) {
-  if (targetMovement === "stationary") return 0;
+  if (targetMovement === "stationary" || targetMovement === "immobile") return 0;
   if (override !== null && override !== undefined && override !== "" && Number(override) !== 0) {
     return Math.max(0, Number(override) || 0);
   }
