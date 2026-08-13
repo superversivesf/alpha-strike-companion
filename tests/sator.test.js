@@ -65,7 +65,7 @@ test("effectiveTargetTmm: shutdown applies -4 floor 0", () => {
 
 test("effectiveTargetTmm: manual override wins", () => {
   assert.equal(effectiveTargetTmm(atlas, entry, "walk", 5), 5);
-  assert.equal(effectiveTargetTmm(atlas, entry, "stationary", 5), 5);
+  assert.equal(effectiveTargetTmm(atlas, entry, "stationary", 5), 0);
 });
 
 test("attackerTypeModifier: IM +1 unless AFC, SV+BFC +1", () => {

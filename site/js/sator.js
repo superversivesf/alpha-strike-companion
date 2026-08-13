@@ -20,10 +20,10 @@ export function terrainModifier(terrain) {
 }
 
 export function effectiveTargetTmm(target, targetEntry, targetMovement, override) {
-  if (override !== null && override !== undefined && override !== "") {
+  if (targetMovement === "stationary") return 0;
+  if (override !== null && override !== undefined && override !== "" && Number(override) !== 0) {
     return Math.max(0, Number(override) || 0);
   }
-  if (targetMovement === "stationary") return 0;
   let tmm = target.tmm;
   const mpHits = targetEntry?.crits?.mp ?? 0;
   const engineHits = targetEntry?.crits?.engine ?? 0;
