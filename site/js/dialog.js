@@ -1,4 +1,13 @@
-import { hitProbability, attackerMoveMod } from "./sator.js";
+import { hitProbability, attackerMoveMod, targetMoveMod, targetUsesTmm } from "./sator.js";
+
+const TARGET_MODES = [
+  ["ground", "Ground / No Movement"],
+  ["standstill", "Standstill / Minimum Movement / Hull-Down"],
+  ["jump", "Jumping Movement"],
+  ["submersible", "Submersible Movement"],
+  ["immobile", "Immobile"],
+  ["dropped", "Dropped by Airborne Unit"],
+];
 
 const SATOR_SECTIONS = [
   ["S", "Skill", "Skill — the pilot's skill rating (0–6). Lower is better; changes the unit's Point Value."],
@@ -71,6 +80,46 @@ function buildDialog(doc) {
       }
       content.append(atkMove);
     }
+    if (letter === "T") {
+      const tgtMode = doc.createElement("select");
+      tgtMode.id = "sator-target-mode";
+      tgtMode.className = "sator-select";
+      for (const [value, label] of TARGET_MODES) {
+        const opt = doc.createElement("option");
+        opt.value = value;
+        opt.textContent = label;
+        tgtMode.append(opt);
+      }
+      const tmmGroup = doc.createElement("div");
+      tmmGroup.className = "sator-radio-group sator-tmm-group";
+      for (let i = 0; i <= 5; i++) {
+        const l = doc.createElement("label");
+        const r = doc.createElement("input");
+        r.type = "radio";
+        r.name = "sator-tmm";
+        r.value = String(i);
+        if (i === 0) r.checked = true;
+        const s = doc.createElement("span");
+        s.textContent = String(i);
+        l.append(r, s);
+        tmmGroup.append(l);
+      }
+      const jetsRow = doc.createElement("div");
+      jetsRow.className = "sator-jets";
+      const jetsLabel = doc.createElement("label");
+      jetsLabel.textContent = "JMPS/JMPW/SUBS/SUBW #";
+      jetsLabel.setAttribute("for", "sator-jets");
+      const jetsInput = doc.createElement("input");
+      jetsInput.id = "sator-jets";
+      jetsInput.className = "sator-number";
+      jetsInput.type = "number";
+      jetsInput.step = "1";
+      jetsInput.min = "-6";
+      jetsInput.max = "6";
+      jetsInput.value = "0";
+      jetsRow.append(jetsLabel, jetsInput);
+      content.append(tgtMode, tmmGroup, jetsRow);
+    }
     if (letter === "R") {
       tnEl = doc.createElement("div");
       tnEl.id = "sator-tn";
@@ -116,11 +165,20 @@ function buildDialog(doc) {
     }
     const skill = currentEntry.skill;
     const move = attackerMoveMod(dialog.querySelector('input[name="sator-atk-move"]:checked')?.value ?? "ground");
-    const tn = Math.max(2, skill + move);
+    const tgtMode = dialog.querySelector("#sator-target-mode")?.value ?? "ground";
+    const tmm = Number(dialog.querySelector('input[name="sator-tmm"]:checked')?.value ?? "0") || 0;
+    const jets = Number(dialog.querySelector("#sator-jets")?.value ?? "0") || 0;
+    const tmmGroup = dialog.querySelector(".sator-tmm-group");
+    const jetsRow = dialog.querySelector(".sator-jets");
+    if (tmmGroup) tmmGroup.hidden = !targetUsesTmm(tgtMode);
+    if (jetsRow) jetsRow.hidden = !(tgtMode === "jump" || tgtMode === "submersible");
+    const tgt = targetMoveMod(tgtMode, tmm, jets);
+    const tn = Math.max(2, skill + move + tgt);
     tnEl.textContent = String(tn);
     tnEl.classList.toggle("impossible", tn > 12);
     const parts = [`${skill} (Skill)`];
     if (move !== 0) parts.push(`${move > 0 ? "+" : ""}${move} (Move)`);
+    if (tgt !== 0) parts.push(`${tgt > 0 ? "+" : ""}${tgt} (Target)`);
     parts.push(`= ${tn}`);
     breakdownEl.textContent = parts.join(" ");
     probEl.textContent = `2d6 \u2265 ${tn} \u2192 ${(hitProbability(tn) * 100).toFixed(1)}% chance to hit`;
@@ -130,6 +188,10 @@ function buildDialog(doc) {
   function open() {
     const skillEl = dialog.querySelector(".sator-skill-value");
     skillEl.textContent = String(currentEntry.skill);
+    const tmm0 = dialog.querySelector('input[name="sator-tmm"][value="0"]');
+    if (tmm0) tmm0.checked = true;
+    const jetsInput = dialog.querySelector("#sator-jets");
+    if (jetsInput) jetsInput.value = "0";
     recompute();
     overlay.hidden = false;
     const first = dialog.querySelector("input, select, button:not(.sator-close)");

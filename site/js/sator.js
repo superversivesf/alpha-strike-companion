@@ -19,6 +19,32 @@ export function attackerMoveMod(mode) {
   return { standstill: -1, ground: 0, jump: 2 }[mode] ?? 0;
 }
 
+export function targetUsesTmm(mode) {
+  return mode === "ground" || mode === "jump" || mode === "submersible";
+}
+
+export function targetMoveMod(mode, tmm = 0, jetValue = 0) {
+  const t = Number(tmm) || 0;
+  const j = Number(jetValue) || 0;
+  switch (mode) {
+    case "jump":
+      return t + 1 + j;
+    case "submersible":
+      return t + j;
+    case "ground":
+      return t;
+    case "immobile":
+      return -4;
+    case "dropped":
+      return 3;
+    case "standstill":
+    case "hull-down":
+      return 0;
+    default:
+      return 0;
+  }
+}
+
 export function terrainModifier(terrain) {
   return TERRAIN_MODS[terrain] ?? 0;
 }

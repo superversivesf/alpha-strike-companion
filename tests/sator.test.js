@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   rangeModifier, movementModifier, terrainModifier, effectiveTargetTmm,
   attackerTypeModifier, abilityModifier, hitProbability, attackerToHit, attackerMoveMod,
+  targetMoveMod, targetUsesTmm,
 } from "../site/js/sator.js";
 
 const CRITS0 = { engine: 0, fireControl: 0, mp: 0, weapons: 0, thruster: 0, fuel: 0, crew: 0 };
@@ -31,6 +32,31 @@ test("attackerMoveMod table", () => {
   assert.equal(attackerMoveMod("ground"), 0);
   assert.equal(attackerMoveMod("jump"), 2);
   assert.equal(attackerMoveMod("bogus"), 0);
+});
+
+test("targetUsesTmm identifies TMM-consuming modes", () => {
+  assert.equal(targetUsesTmm("ground"), true);
+  assert.equal(targetUsesTmm("jump"), true);
+  assert.equal(targetUsesTmm("submersible"), true);
+  assert.equal(targetUsesTmm("standstill"), false);
+  assert.equal(targetUsesTmm("hull-down"), false);
+  assert.equal(targetUsesTmm("immobile"), false);
+  assert.equal(targetUsesTmm("dropped"), false);
+});
+
+test("targetMoveMod table", () => {
+  assert.equal(targetMoveMod("ground", 3, 0), 3);
+  assert.equal(targetMoveMod("standstill", 3, 0), 0);
+  assert.equal(targetMoveMod("hull-down", 3, 0), 0);
+  assert.equal(targetMoveMod("jump", 3, 0), 4); // TMM +1
+  assert.equal(targetMoveMod("jump", 3, 2), 6); // TMM +1 + jets
+  assert.equal(targetMoveMod("jump", 3, -2), 2); // JMPW-2
+  assert.equal(targetMoveMod("submersible", 2, 0), 2);
+  assert.equal(targetMoveMod("submersible", 2, 3), 5); // SUBS
+  assert.equal(targetMoveMod("submersible", 2, -1), 1); // SUBW
+  assert.equal(targetMoveMod("immobile", 3, 0), -4);
+  assert.equal(targetMoveMod("dropped", 3, 0), 3);
+  assert.equal(targetMoveMod("bogus", 3, 0), 0);
 });
 
 test("terrainModifier table", () => {
