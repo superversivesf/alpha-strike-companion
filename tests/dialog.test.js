@@ -35,11 +35,11 @@ test("ensureSatorDialog is idempotent and hidden", () => {
   assert.equal(a.getAttribute("aria-modal"), "true");
 });
 
-test("wizard shows five step pills in order", () => {
+test("wizard shows six step pills in order", () => {
   const doc = setup();
   ensureSatorDialog(doc);
   const letters = [...doc.querySelectorAll(".sator-pill")].map(p => p.dataset.step);
-  assert.deepEqual(letters, ["S", "A", "T", "O", "R"]);
+  assert.deepEqual(letters, ["S", "A", "T", "O", "R", "#"]);
 });
 
 test("only the current step panel is visible", () => {
@@ -55,6 +55,23 @@ test("only the current step panel is visible", () => {
   assert.deepEqual([...doc.querySelectorAll(".sator-panel")].filter(p => !p.hidden).map(p => p.dataset.step), ["O"]);
   doc.querySelector("#sator-next").click();
   assert.deepEqual([...doc.querySelectorAll(".sator-panel")].filter(p => !p.hidden).map(p => p.dataset.step), ["R"]);
+  doc.querySelector("#sator-next").click();
+  assert.deepEqual([...doc.querySelectorAll(".sator-panel")].filter(p => !p.hidden).map(p => p.dataset.step), ["#"]);
+});
+
+test("range step changes TN and breakdown", () => {
+  const doc = setup();
+  open(doc);
+  const overlay = ensureSatorDialog(doc);
+  doc.querySelector("#sator-next").click(); // A
+  doc.querySelector("#sator-next").click(); // T
+  doc.querySelector("#sator-next").click(); // O
+  doc.querySelector("#sator-next").click(); // R
+  overlay.querySelector('input[name="sator-range"][value="M"]').click();
+  assert.equal(overlay.querySelector("#sator-run-tn").textContent, "6"); // 4 + 2
+  assert.match(overlay.querySelector("#sator-breakdown").textContent, /\+2 \(Range\)/);
+  overlay.querySelector('input[name="sator-range"][value="L"]').click();
+  assert.equal(overlay.querySelector("#sator-run-tn").textContent, "8"); // 4 + 4
 });
 
 test("openSatorDialog unhides and prefills attacker skill", () => {
@@ -189,13 +206,10 @@ test("backdrop click closes the dialog", () => {
   assert.equal(overlay.hidden, true);
 });
 
-test("finish on the R step closes the dialog", () => {
+test("finish on the final step closes the dialog", () => {
   const doc = setup();
   open(doc);
-  doc.querySelector("#sator-next").click();
-  doc.querySelector("#sator-next").click();
-  doc.querySelector("#sator-next").click();
-  doc.querySelector("#sator-next").click();
+  for (let i = 0; i < 5; i++) doc.querySelector("#sator-next").click();
   const next = doc.querySelector("#sator-next");
   assert.equal(next.textContent, "\u2713");
   next.click();

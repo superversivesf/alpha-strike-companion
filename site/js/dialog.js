@@ -1,20 +1,27 @@
-import { hitProbability, attackerMoveMod, targetMoveMod, targetUsesTmm } from "./sator.js";
+import { hitProbability, attackerMoveMod, targetMoveMod, targetUsesTmm, rangeModifier } from "./sator.js";
 
 const STEPS = [
   ["S", "Skill", "Skill — the pilot's skill rating (0–6). Lower is better; changes the unit's Point Value."],
   ["A", "Attacker", "Attacker — modifiers from the attacking unit's own situation, such as its movement."],
-  ["T", "Target", "Target — the target's movement modifier (TMM), terrain, and other target factors."],
+  ["T", "Target", "Target — the target's movement modifier (TMM) and jump/submersible modifiers."],
   ["O", "Other", "Other — additional situational modifiers such as indirect fire, darkness, or special abilities."],
-  ["R", "Roll", "Roll — the final target number: roll 2d6 equal to or above it to hit."],
+  ["R", "Range", "Range — distance band to the target: Short +0, Medium +2, Long +4."],
+  ["#", "Target Number", "Target Number — the final number to roll 2d6 equal to or above."],
+];
+
+const RANGES = [
+  ["S", "Short +0"],
+  ["M", "Medium +2"],
+  ["L", "Long +4"],
 ];
 
 const TARGET_MODES = [
   ["ground", "Ground / No Movement"],
   ["standstill", "Standstill / Min Move / Hull-Down"],
-  ["jump", "Jumping Movement"],
+  ["jump", "Jumping Movement +1"],
   ["submersible", "Submersible Movement"],
-  ["immobile", "Immobile"],
-  ["dropped", "Dropped by Airborne Unit"],
+  ["immobile", "Immobile −4"],
+  ["dropped", "Dropped by Airborne Unit +3"],
 ];
 
 const ATK_MOVES = [
@@ -178,6 +185,23 @@ function buildDialog(doc) {
       panel.append(otherNote);
     }
     if (letter === "R") {
+      const rangeGroup = doc.createElement("div");
+      rangeGroup.className = "sator-btn-grid";
+      for (const [value, label] of RANGES) {
+        const l = doc.createElement("label");
+        const r = doc.createElement("input");
+        r.type = "radio";
+        r.name = "sator-range";
+        r.value = value;
+        if (value === "S") r.checked = true;
+        const s = doc.createElement("span");
+        s.textContent = label;
+        l.append(r, s);
+        rangeGroup.append(l);
+      }
+      panel.append(rangeGroup);
+    }
+    if (letter === "#") {
       tnEl = doc.createElement("div");
       tnEl.id = "sator-tn";
       tnEl.className = "sator-tn";
@@ -238,7 +262,8 @@ function buildDialog(doc) {
     const tgtMode = dialog.querySelector('input[name="sator-target-mode"]:checked')?.value ?? "ground";
     const tmm = Number(dialog.querySelector('input[name="sator-tmm"]:checked')?.value ?? "0") || 0;
     const jets = Number(dialog.querySelector("#sator-jets")?.value ?? "0") || 0;
-    return { atkMove, tgtMode, tmm, jets };
+    const range = dialog.querySelector('input[name="sator-range"]:checked')?.value ?? "S";
+    return { atkMove, tgtMode, tmm, jets, range };
   }
 
   function compute() {
@@ -246,14 +271,16 @@ function buildDialog(doc) {
     if (reason) {
       return { tn: null, breakdown: reason, probability: 0, impossible: false };
     }
-    const { atkMove, tgtMode, tmm, jets } = readValues();
+    const { atkMove, tgtMode, tmm, jets, range } = readValues();
     const skill = currentEntry.skill;
     const move = attackerMoveMod(atkMove);
     const tgt = targetMoveMod(tgtMode, tmm, jets);
-    const tn = Math.max(2, skill + move + tgt);
+    const rng = rangeModifier(range);
+    const tn = Math.max(2, skill + move + tgt + rng);
     const parts = [`${skill} (Skill)`];
     if (move !== 0) parts.push(`${move > 0 ? "+" : ""}${move} (Move)`);
     if (tgt !== 0) parts.push(`${tgt > 0 ? "+" : ""}${tgt} (Target)`);
+    if (rng !== 0) parts.push(`${rng > 0 ? "+" : ""}${rng} (Range)`);
     parts.push(`= ${tn}`);
     return { tn, breakdown: parts.join(" "), probability: hitProbability(tn), impossible: tn > 12 };
   }
