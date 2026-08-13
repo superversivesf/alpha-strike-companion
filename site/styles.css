@@ -733,6 +733,29 @@ h1, h2, h3 { font-family: var(--font-head); letter-spacing: 0.06em; }
   text-transform: uppercase;
   color: var(--muted);
 }
+.sator-radio-group {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.sator-radio-group label {
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--text);
+}
+.sator-radio-group input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.sator-radio-group label:has(input:checked) {
+  border-color: var(--accent);
+  background: rgba(240, 124, 31, 0.15);
+}
 .sator-skill-value {
   font-family: var(--font-head);
   font-size: 26px;

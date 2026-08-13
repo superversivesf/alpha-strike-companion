@@ -30,6 +30,7 @@ test("styles.css defines the BattleTech palette", () => {
   assert.match(css, /\.picker-empty\s*\{/);
   assert.match(css, /\.sator-overlay\s*\{/);
   assert.match(css, /\.sator-dialog\s*\{/);
+  assert.match(css, /\.sator-radio-group\s*\{/);
   assert.match(css, /\.card-tohit\s*\{/);
 });
 

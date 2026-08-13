@@ -55,7 +55,7 @@ function buildDialog(doc) {
     if (letter === "A") {
       const atkMove = doc.createElement("div");
       atkMove.className = "sator-radio-group";
-      for (const [value, label] of [["standstill", "Standstill \u22121"], ["ground", "Ground 0"], ["jump", "Jump +2"]]) {
+      for (const [value, label] of [["standstill", "Standstill"], ["ground", "Ground"], ["jump", "Jump"]]) {
         const l = doc.createElement("label");
         const r = doc.createElement("input");
         r.type = "radio";
