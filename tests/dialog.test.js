@@ -116,7 +116,7 @@ test("target stationary zeros TMM and lowers TN", () => {
   stationary.dispatchEvent(new doc.defaultView.Event("change", { bubbles: true }));
   const tn = Number(overlay.querySelector("#sator-tn").textContent);
   assert.equal(tn, 4); // skill 4, tmm zeroed by stationary (stationary wins over manual TMM)
-  assert.equal(tmm3.disabled, true);
+  assert.equal(overlay.querySelector(".sator-tmm-row").hidden, true, "TMM row hidden for stationary");
   const tmm0 = overlay.querySelector('input[name="sator-tmm"][value="0"]');
   assert.equal(tmm0.checked, true, "stationary must reset selection to TMM 0");
 });
@@ -132,7 +132,7 @@ test("target immobile zeros TMM like stationary", () => {
   immobile.dispatchEvent(new doc.defaultView.Event("change", { bubbles: true }));
   const tn = Number(overlay.querySelector("#sator-tn").textContent);
   assert.equal(tn, 4); // skill 4, tmm zeroed
-  assert.equal(tmm2.disabled, true);
+  assert.equal(overlay.querySelector(".sator-tmm-row").hidden, true, "TMM row hidden for immobile");
   assert.equal(overlay.querySelector('input[name="sator-tmm"][value="0"]').checked, true);
 });
 
@@ -145,7 +145,7 @@ test("moved target keeps selected TMM", () => {
   tmm3.dispatchEvent(new doc.defaultView.Event("change", { bubbles: true }));
   const tn = Number(overlay.querySelector("#sator-tn").textContent);
   assert.equal(tn, 7); // skill 4 + tmm 3
-  assert.equal(tmm3.disabled, false);
+  assert.equal(overlay.querySelector(".sator-tmm-row").hidden, false, "TMM row visible for moved");
 });
 
 test("SRCH attacker disables and zeroes the darkness toggle", () => {
