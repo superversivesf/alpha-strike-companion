@@ -109,6 +109,13 @@ function buildDialog(doc) {
       const jetsLabel = doc.createElement("label");
       jetsLabel.textContent = "JMPS/JMPW/SUBS/SUBW #";
       jetsLabel.setAttribute("for", "sator-jets");
+      const jetsStepper = doc.createElement("div");
+      jetsStepper.className = "sator-stepper";
+      const jetsDec = doc.createElement("button");
+      jetsDec.type = "button";
+      jetsDec.className = "sator-stepper-btn";
+      jetsDec.setAttribute("aria-label", "Decrease jet modifier");
+      jetsDec.textContent = "\u2212";
       const jetsInput = doc.createElement("input");
       jetsInput.id = "sator-jets";
       jetsInput.className = "sator-number";
@@ -117,7 +124,13 @@ function buildDialog(doc) {
       jetsInput.min = "-3";
       jetsInput.max = "2";
       jetsInput.value = "0";
-      jetsRow.append(jetsLabel, jetsInput);
+      const jetsInc = doc.createElement("button");
+      jetsInc.type = "button";
+      jetsInc.className = "sator-stepper-btn";
+      jetsInc.setAttribute("aria-label", "Increase jet modifier");
+      jetsInc.textContent = "+";
+      jetsStepper.append(jetsDec, jetsInput, jetsInc);
+      jetsRow.append(jetsLabel, jetsStepper);
       content.append(tgtMode, tmmGroup, jetsRow);
     }
     if (letter === "R") {
@@ -222,6 +235,20 @@ function buildDialog(doc) {
 
   dialog.addEventListener("input", recompute);
   dialog.addEventListener("change", recompute);
+
+  const jetsStepper = dialog.querySelector(".sator-stepper");
+  if (jetsStepper) {
+    const jetsInput = jetsStepper.querySelector("#sator-jets");
+    const dec = jetsStepper.querySelector(".sator-stepper-btn[aria-label=\"Decrease jet modifier\"]");
+    const inc = jetsStepper.querySelector(".sator-stepper-btn[aria-label=\"Increase jet modifier\"]");
+    const step = delta => {
+      const next = Math.max(-3, Math.min(2, (Number(jetsInput.value) || 0) + delta));
+      jetsInput.value = String(next);
+      recompute();
+    };
+    dec.addEventListener("click", () => step(-1));
+    inc.addEventListener("click", () => step(1));
+  }
 
   return overlay;
 }

@@ -142,3 +142,35 @@ test("backdrop click closes the dialog", () => {
   overlay.dispatchEvent(new doc.defaultView.MouseEvent("click", { bubbles: true }));
   assert.equal(overlay.hidden, true);
 });
+
+test("jet stepper buttons adjust the jets value", () => {
+  const doc = setup();
+  openSatorDialog({ doc, attacker: atlas, attackerEntry: entry });
+  const overlay = ensureSatorDialog(doc);
+  const mode = overlay.querySelector("#sator-target-mode");
+  mode.value = "jump";
+  mode.dispatchEvent(new doc.defaultView.Event("change", { bubbles: true }));
+  const jetsInput = overlay.querySelector("#sator-jets");
+  assert.equal(jetsInput.value, "0");
+  overlay.querySelector(".sator-stepper-btn[aria-label=\"Increase jet modifier\"]").click();
+  assert.equal(jetsInput.value, "1");
+  assert.equal(overlay.querySelector("#sator-tn").textContent, "6"); // skill 4 + jump (tmm 0 +1) + jets 1 = 6
+  overlay.querySelector(".sator-stepper-btn[aria-label=\"Decrease jet modifier\"]").click();
+  overlay.querySelector(".sator-stepper-btn[aria-label=\"Decrease jet modifier\"]").click();
+  assert.equal(jetsInput.value, "-1");
+});
+
+test("jet stepper clamps to data range -3..2", () => {
+  const doc = setup();
+  openSatorDialog({ doc, attacker: atlas, attackerEntry: entry });
+  const overlay = ensureSatorDialog(doc);
+  const jetsInput = overlay.querySelector("#sator-jets");
+  const inc = overlay.querySelector(".sator-stepper-btn[aria-label=\"Increase jet modifier\"]");
+  const dec = overlay.querySelector(".sator-stepper-btn[aria-label=\"Decrease jet modifier\"]");
+  jetsInput.value = "2";
+  inc.click();
+  assert.equal(jetsInput.value, "2", "cannot exceed +2");
+  jetsInput.value = "-3";
+  dec.click();
+  assert.equal(jetsInput.value, "-3", "cannot go below -3");
+});

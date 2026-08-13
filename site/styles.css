@@ -731,16 +731,22 @@ h1, h2, h3 { font-family: var(--font-head); letter-spacing: 0.06em; }
 }
 .sator-radio-group {
   display: flex;
-  gap: 4px;
+  gap: 6px;
   flex-wrap: wrap;
 }
 .sator-radio-group label {
-  padding: 4px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 10px 14px;
   border: 1px solid var(--border);
-  border-radius: 3px;
+  border-radius: 4px;
   cursor: pointer;
-  font-size: 12px;
+  font-size: 14px;
   color: var(--text);
+  -webkit-tap-highlight-color: transparent;
 }
 .sator-radio-group input[type="radio"] {
   position: absolute;
@@ -752,14 +758,58 @@ h1, h2, h3 { font-family: var(--font-head); letter-spacing: 0.06em; }
   border-color: var(--accent);
   background: rgba(240, 124, 31, 0.15);
 }
+.sator-radio-group label:active {
+  border-color: var(--accent-strong);
+  background: rgba(240, 124, 31, 0.3);
+}
 .sator-tmm-group { margin-top: 6px; }
+.sator-select, .sator-number {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  min-height: 44px;
+}
+#sator-target-mode {
+  width: 100%;
+  margin-bottom: 6px;
+}
 .sator-jets {
   display: flex;
   align-items: center;
   gap: 8px;
   margin-top: 6px;
-  font-size: 12px;
+  font-size: 13px;
   color: var(--muted);
+}
+.sator-stepper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.sator-stepper-btn {
+  min-width: 44px;
+  min-height: 44px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--panel-2);
+  color: var(--text);
+  font-size: 20px;
+  font-weight: 700;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.sator-stepper-btn:active {
+  border-color: var(--accent);
+  color: var(--accent-strong);
+}
+.sator-stepper .sator-number {
+  width: 64px;
+  min-height: 44px;
+  text-align: center;
+  font-size: 16px;
 }
 .sator-skill-value {
   font-family: var(--font-head);
