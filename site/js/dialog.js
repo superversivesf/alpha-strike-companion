@@ -144,7 +144,8 @@ function buildDialog(doc) {
       const jetsRow = doc.createElement("div");
       jetsRow.className = "sator-jets";
       const jetsLabel = doc.createElement("label");
-      jetsLabel.textContent = "JMPS/JMPW/SUBS/SUBW #";
+      jetsLabel.id = "sator-jets-label";
+      jetsLabel.textContent = "JMP #";
       jetsLabel.setAttribute("for", "sator-jets");
       const jetsStepper = doc.createElement("div");
       jetsStepper.className = "sator-stepper";
@@ -304,7 +305,12 @@ function buildDialog(doc) {
     const tmmGroup = dialog.querySelector(".sator-tmm-group");
     const jetsRow = dialog.querySelector(".sator-jets");
     if (tmmGroup) tmmGroup.hidden = !targetUsesTmm(mode);
-    if (jetsRow) jetsRow.hidden = !(mode === "jump" || mode === "submersible");
+    if (jetsRow) {
+      const usesJets = mode === "jump" || mode === "submersible";
+      jetsRow.hidden = !usesJets;
+      const label = dialog.querySelector("#sator-jets-label");
+      if (label) label.textContent = mode === "submersible" ? "SUB #" : "JMP #";
+    }
   }
 
   function open() {
@@ -371,13 +377,7 @@ function buildDialog(doc) {
   const tgtModeGroup = dialog.querySelector('input[name="sator-target-mode"]');
   if (tgtModeGroup) {
     dialog.querySelector(".sator-panel[data-step=\"T\"]").addEventListener("change", e => {
-      if (e.target.name === "sator-target-mode") {
-        const mode = e.target.value;
-        const tmmGroup = dialog.querySelector(".sator-tmm-group");
-        const jetsRow = dialog.querySelector(".sator-jets");
-        tmmGroup.hidden = !targetUsesTmm(mode);
-        jetsRow.hidden = !(mode === "jump" || mode === "submersible");
-      }
+      if (e.target.name === "sator-target-mode") applyRevealState();
     });
   }
 

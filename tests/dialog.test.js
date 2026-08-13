@@ -101,7 +101,11 @@ test("target modes reveal TMM and jets conditionally", () => {
   assert.equal(jetsRow.hidden, true, "ground hides jets");
   overlay.querySelector('input[name="sator-target-mode"][value="jump"]').click();
   assert.equal(jetsRow.hidden, false, "jump shows jets");
+  assert.equal(overlay.querySelector("#sator-jets-label").textContent, "JMP #");
   assert.equal(overlay.querySelector("#sator-run-tn").textContent, "5"); // 4 + jump(tmm0+1)
+  overlay.querySelector('input[name="sator-target-mode"][value="submersible"]').click();
+  assert.equal(jetsRow.hidden, false, "submersible shows jets");
+  assert.equal(overlay.querySelector("#sator-jets-label").textContent, "SUB #");
   overlay.querySelector('input[name="sator-target-mode"][value="immobile"]').click();
   assert.equal(tmmGroup.hidden, true, "immobile hides TMM");
   assert.equal(jetsRow.hidden, true, "immobile hides jets");

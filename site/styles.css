@@ -768,6 +768,10 @@ h1, h2, h3 { font-family: var(--font-head); letter-spacing: 0.06em; }
   font-size: 13px;
   color: var(--muted);
 }
+.sator-jets[hidden],
+.sator-tmm-group[hidden] {
+  display: none;
+}
 .sator-stepper {
   display: flex;
   align-items: center;
