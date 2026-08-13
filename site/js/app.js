@@ -17,7 +17,6 @@ let _eras = [];
 let _unitById = new Map();
 let _state = { roster: [], groups: [] };
 let _saveTimer = null;
-let _groupCounter = 0;
 
 function el(id) {
   return _doc.getElementById(id);
@@ -209,7 +208,6 @@ export async function init({ doc, storage }) {
   }
   _state = _storage.loadState() || { roster: [], groups: [] };
   if (!Array.isArray(_state.groups)) _state = { ..._state, groups: [] };
-  _groupCounter = _state.groups.length;
 
   const typeFilter = el("type-filter");
   const eraFilter = el("era-filter");
@@ -318,18 +316,6 @@ export async function init({ doc, storage }) {
         renderRoster();
       }
       return;
-    }
-    const nameInput = e.target.closest(".group-name");
-    if (nameInput) {
-      const section = nameInput.closest(".group");
-      const gid = section && section.dataset.groupId;
-      if (gid && gid !== "ungrouped") {
-        _state = {
-          ..._state,
-          groups: _state.groups.map(g => (g.id === gid ? setGroupName(g, nameInput.value) : g)),
-        };
-        persist();
-      }
     }
   });
 

@@ -163,3 +163,113 @@ test("sanitizeState dedupes group ids and rejects empty ids", () => {
   assert.equal(s.groups.length, 1);
   assert.equal(s.groups[0].name, "A");
 });
+
+test("loadState returns default when localStorage.getItem throws", () => {
+  const bad = { getItem: () => { throw new Error("denied"); } };
+  assert.deepEqual(loadState(bad), { roster: [], groups: [] });
+});
+
+test("loadState returns default when localStorage access throws", () => {
+  const orig = globalThis.localStorage;
+  Object.defineProperty(globalThis, "localStorage", {
+    configurable: true,
+    get() { throw new Error("blocked"); },
+  });
+  try {
+    assert.deepEqual(loadState(), { roster: [], groups: [] });
+  } finally {
+    Object.defineProperty(globalThis, "localStorage", { configurable: true, value: orig });
+  }
+});
+
+test("sanitizeState dedupes unitIds within a group", () => {
+  const s = sanitizeState({
+    roster: [
+      { id: "e1", unitId: "atlas-as7-d", armorDamage: 0, structDamage: 0, heat: 0, crits: { ...CRITS0 }, skill: 4, skillSet: false },
+      { id: "e2", unitId: "atlas-as7-d", armorDamage: 0, structDamage: 0, heat: 0, crits: { ...CRITS0 }, skill: 4, skillSet: false },
+    ],
+    groups: [{ id: "g1", name: "Lance 1", size: 4, unitIds: ["e1", "e1", "e1", "e2"] }],
+  }, unitById);
+  assert.deepEqual(s.groups[0].unitIds, ["e1", "e2"]);
+});
+
+test("importState throws on object without roster array", () => {
+  assert.throws(() => importState("{}", unitById), /missing roster array/);
+});
+
+test("empty state roundtrips through exportBlob and importState", () => {
+  const empty = { roster: [], groups: [] };
+  const { text } = exportBlob(empty);
+  assert.deepEqual(importState(text, unitById), empty);
+});
+
+test("loadState returns default when stored value parses to null", () => {
+  const ls = freshLocalStorage();
+  ls.setItem("as-companion-state-v1", "null");
+  assert.deepEqual(loadState(ls), { roster: [], groups: [] });
+});
+
+test("loadState coerces non-array groups to empty array", () => {
+  const ls = freshLocalStorage();
+  ls.setItem("as-companion-state-v1", JSON.stringify({ roster: [], groups: "nope" }));
+  assert.deepEqual(loadState(ls), { roster: [], groups: [] });
+});
+
+test("sanitizeState returns default for non-array roster", () => {
+  assert.deepEqual(sanitizeState({ roster: "nope" }, unitById), { roster: [], groups: [] });
+  assert.deepEqual(sanitizeState(null, unitById), { roster: [], groups: [] });
+});
+
+test("sanitizeState dedupes duplicate entry ids", () => {
+  const s = sanitizeState({
+    roster: [
+      { id: "e1", unitId: "atlas-as7-d", armorDamage: 0, structDamage: 0, heat: 0, crits: { ...CRITS0 }, skill: 4, skillSet: false },
+      { id: "e1", unitId: "atlas-as7-d", armorDamage: 0, structDamage: 0, heat: 0, crits: { ...CRITS0 }, skill: 4, skillSet: false },
+    ],
+  }, unitById);
+  assert.equal(s.roster.length, 1);
+});
+
+test("sanitizeState falls back to unit skill for non-numeric entry skill", () => {
+  const s = sanitizeState({
+    roster: [{ id: "e1", unitId: "atlas-as7-d", armorDamage: 0, structDamage: 0, heat: 0, crits: { ...CRITS0 }, skill: "X", skillSet: false }],
+  }, unitById);
+  assert.equal(s.roster[0].skill, 4);
+});
+
+test("sanitizeState generates id for entry with non-string id", () => {
+  const s = sanitizeState({
+    roster: [{ id: 42, unitId: "atlas-as7-d", armorDamage: 0, structDamage: 0, heat: 0, crits: { ...CRITS0 }, skill: 4, skillSet: false }],
+  }, unitById);
+  assert.equal(s.roster.length, 1);
+  assert.ok(typeof s.roster[0].id === "string" && s.roster[0].id.length > 0);
+});
+
+test("sanitizeState clamps group size and cleans non-string names", () => {
+  const s = sanitizeState({
+    roster: [],
+    groups: [
+      { id: "g1", name: 42, size: 0, unitIds: ["ghost"] },
+      { id: "g2", name: "ok", size: 99, unitIds: [] },
+    ],
+  }, unitById);
+  assert.equal(s.groups.length, 1);
+  assert.equal(s.groups[0].id, "g2");
+  assert.equal(s.groups[0].size, 10);
+});
+
+test("sanitizeState drops groups with non-numeric size", () => {
+  const s = sanitizeState({
+    roster: [],
+    groups: [{ id: "g1", name: "x".repeat(200), size: "big", unitIds: [] }],
+  }, unitById);
+  assert.equal(s.groups.length, 0);
+});
+
+test("sanitizeState zeroes non-numeric crit values", () => {
+  const s = sanitizeState({
+    roster: [{ id: "e1", unitId: "atlas-as7-d", armorDamage: 0, structDamage: 0, heat: 0, crits: { engine: "x", weapons: null }, skill: 4, skillSet: false }],
+  }, unitById);
+  assert.equal(s.roster[0].crits.engine, 0);
+  assert.equal(s.roster[0].crits.weapons, 0);
+});

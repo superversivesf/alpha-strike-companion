@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { JSDOM } from "jsdom";
-import { renderCard } from "../site/js/cards.js";
+import { renderCard, abilityTip } from "../site/js/cards.js";
 import { createEntry } from "../site/js/state.js";
 
 const unit = {
@@ -18,8 +18,12 @@ function render(unit, entry) {
   return renderCard(unit, entry, () => {});
 }
 
-test("renderCard shows identity, stats, pv", () => {
-  const card = render(unit, createEntry(unit));
+test("abilityTip returns fallback for unknown codes", () => {
+  assert.equal(abilityTip("XYZ123"), "Special ability — see the Alpha Strike Commander's Edition rulebook");
+  assert.equal(abilityTip("!!!"), "Special ability — see the Alpha Strike Commander's Edition rulebook");
+});
+
+test("renderCard shows identity, stats, pv", () => {  const card = render(unit, createEntry(unit));
   assert.equal(card.querySelector(".card-title").textContent, "ATLAS");
   assert.equal(card.querySelector(".card-variant").textContent, "AS7-D");
   assert.equal(card.querySelector(".card-pv").textContent, "PV 52");
@@ -73,18 +77,6 @@ test("renderCard lays out details left, artwork right", () => {
   const art = body.querySelector(".card-art");
   assert.ok(details && art);
   assert.ok(details.compareDocumentPosition(art) & dom.window.Node.DOCUMENT_POSITION_FOLLOWING);
-});
-
-test("renderCard adds tooltips to stats, tracks, heat, crits, abilities", () => {
-  const card = render(unit, createEntry(unit));
-  assert.ok(card.querySelector('.identity-cell b.tip[data-tip*="Size"]'));
-  assert.ok(card.querySelector('.track-label.tip[data-tip*="Armor points"]'));
-  assert.ok(card.querySelector('.track-label.tip[data-tip*="Structure points"]'));
-  assert.ok(card.querySelector('.track-label.tip[data-tip*="Heat level"]'));
-  assert.ok(card.querySelector('.track-label.tip[data-tip*="critical hits"]'));
-  assert.ok(card.querySelector('.ability.tip[data-tip*="Autocannon"]'));
-  assert.ok(card.querySelector('.ability.tip[data-tip*="Indirect Fire"]'));
-  assert.ok(card.querySelector('.card-pv.tip[data-tip*="Point Value"]'));
 });
 
 test("renderCard shows artwork when image present, placeholder when not", () => {

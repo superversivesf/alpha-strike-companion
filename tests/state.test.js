@@ -168,3 +168,48 @@ test("isEntryValid enforces bounds", () => {
   assert.equal(isEntryValid({ ...e, skill: "3" }, unit), false);
   assert.equal(isEntryValid({ ...e, id: "" }, unit), false);
 });
+
+test("toggleCrit ignores out-of-bounds index", () => {
+  const e = createEntry(unit);
+  assert.equal(toggleCrit(e, unit, "engine", -1), e);
+  assert.equal(toggleCrit(e, unit, "engine", 99), e);
+});
+
+test("createEntry falls back to skill 4 when unit.skill is missing", () => {
+  const u = { ...unit, skill: undefined };
+  const e = createEntry(u);
+  assert.equal(e.skill, 4);
+});
+
+test("isGroupValid rejects non-string unitIds", () => {
+  const g = createGroup(unit);
+  assert.equal(isGroupValid({ ...g, unitIds: [1, 2] }), false);
+});
+
+test("isEntryValid rejects negative skill", () => {
+  const e = createEntry(unit);
+  assert.equal(isEntryValid({ ...e, skill: -1 }, unit), false);
+});
+
+test("damageArmor clears the first pip when re-clicked", () => {
+  let e = createEntry(unit);
+  e = damageArmor(e, unit, 0);
+  assert.equal(e.armorDamage, 1);
+  e = damageArmor(e, unit, 0);
+  assert.equal(e.armorDamage, 0);
+});
+
+test("setSkill clamps fractional values", () => {
+  let e = createEntry(unit);
+  e = setSkill(e, 2.7);
+  assert.equal(e.skill, 2);
+  e = setSkill(e, "3");
+  assert.equal(e.skill, 3);
+});
+
+test("addUnitToGroup rejects duplicate unitIds", () => {
+  const g = createGroup(unit);
+  const g2 = addUnitToGroup(g, "atlas-as7-d");
+  const g3 = addUnitToGroup(g2, "atlas-as7-d");
+  assert.equal(g3.unitIds.length, 1);
+});

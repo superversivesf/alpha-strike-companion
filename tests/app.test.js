@@ -38,7 +38,7 @@ async function boot({ state = { roster: [] } } = {}) {
 }
 
 async function settle() {
-  await new Promise(r => setTimeout(r, 200));
+  await new Promise(r => setImmediate(r));
 }
 
 function showSomeUnits() {
@@ -278,6 +278,304 @@ test("import via file input renders imported roster", async () => {
   assert.equal(cards.length, 1);
   assert.match(cards[0].querySelector(".card-title").textContent, /ATLAS/);
   assert.equal(document.querySelectorAll(".pip.damaged").length, 3);
+});
+
+test("persist logs an error when saveState throws", async () => {
+  const html = readFileSync("site/index.html", "utf8");
+  const dom = new JSDOM(html, { url: "http://localhost/", pretendToBeVisual: true });
+  const { window } = dom;
+  globalThis.window = window;
+  globalThis.document = window.document;
+  globalThis.localStorage = window.localStorage;
+  globalThis.fetch = async () => ({ ok: true, json: async () => ({ units: UNITS, eras: ERAS }) });
+  window.__AS_MANUAL__ = true;
+  const errors = [];
+  const orig = console.error;
+  console.error = (...args) => errors.push(args);
+  try {
+    const app = await import(`../site/js/app.js?persist=${Date.now()}`);
+    const storage = {
+      importState: text => JSON.parse(text),
+      exportBlob: () => ({}),
+      loadState: () => ({ roster: [], groups: [] }),
+      saveState: () => { throw new Error("quota exceeded"); },
+    };
+    await app.init({ doc: window.document, storage });
+    const s = window.document.getElementById("search");
+    s.value = "a";
+    s.dispatchEvent(new window.Event("input", { bubbles: true }));
+    window.document.querySelector("#picker-list li button").dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
+    assert.equal(errors.length, 1);
+    assert.match(errors[0][0], /Could not persist state/);
+  } finally {
+    console.error = orig;
+  }
+});
+
+test("groupLabel falls back to Group for odd sizes", async () => {
+  const html = readFileSync("site/index.html", "utf8");
+  const dom = new JSDOM(html, { url: "http://localhost/", pretendToBeVisual: true });
+  const { window } = dom;
+  globalThis.window = window;
+  globalThis.document = window.document;
+  globalThis.localStorage = window.localStorage;
+  globalThis.fetch = async () => ({ ok: true, json: async () => ({ units: UNITS, eras: ERAS }) });
+  window.__AS_MANUAL__ = true;
+  const app = await import(`../site/js/app.js?grouplabel=${Date.now()}`);
+  const storage = {
+    importState: text => JSON.parse(text),
+    exportBlob: () => ({}),
+    loadState: () => ({ roster: [], groups: [{ id: "g1", name: "", size: 3, unitIds: [] }] }),
+    saveState: () => {},
+  };
+  await app.init({ doc: window.document, storage });
+  const tab = window.document.querySelector("#roster .group-tab");
+  assert.equal(tab.textContent, "Group");
+});
+
+test("init rejects payload missing the units array", async () => {
+  const html = readFileSync("site/index.html", "utf8");
+  const dom = new JSDOM(html, { url: "http://localhost/", pretendToBeVisual: true });
+  const { window } = dom;
+  globalThis.window = window;
+  globalThis.document = window.document;
+  globalThis.fetch = async () => ({ ok: true, json: async () => ({ eras: [] }) });
+  window.__AS_MANUAL__ = true;
+  const app = await import("../site/js/app.js");
+  await assert.rejects(
+    () => app.init({ doc: window.document, storage: { loadState: () => null, saveState: () => {} } }),
+    /missing the units array/
+  );
+});
+
+test("init falls back to makeStorage when storage lacks importState", async () => {
+  const html = readFileSync("site/index.html", "utf8");
+  const dom = new JSDOM(html, { url: "http://localhost/", pretendToBeVisual: true });
+  const { window } = dom;
+  globalThis.window = window;
+  globalThis.document = window.document;
+  globalThis.localStorage = window.localStorage;
+  globalThis.fetch = async () => ({ ok: true, json: async () => ({ units: UNITS, eras: ERAS }) });
+  window.__AS_MANUAL__ = true;
+  const app = await import(`../site/js/app.js?fallback=${Date.now()}`);
+  const storage = { loadState: () => ({ roster: [], groups: [] }), saveState: () => {} };
+  await app.init({ doc: window.document, storage });
+  const s = window.document.getElementById("search");
+  s.value = "a";
+  s.dispatchEvent(new window.Event("input", { bubbles: true }));
+  window.document.querySelector("#picker-list li button").dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
+  assert.equal(window.document.querySelectorAll("#roster .card").length, 1);
+});
+
+test("import failure alerts and leaves state unchanged", async () => {
+  const { document, window, saved } = await boot();
+  const alerts = [];
+  const origAlert = window.alert;
+  window.alert = msg => alerts.push(msg);
+  try {
+    showSomeUnits();
+    document.querySelector("#picker-list li button").dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
+    assert.equal(document.querySelectorAll("#roster .card").length, 1);
+    const file = new window.File(["not json"], "bad.json", { type: "application/json" });
+    file.text = async () => "not json";
+    const input = document.getElementById("import-file");
+    Object.defineProperty(input, "files", { value: [file], writable: false });
+    input.dispatchEvent(new window.Event("change", { bubbles: true }));
+    await new Promise(r => setTimeout(r, 50));
+    assert.equal(alerts.length, 1);
+    assert.match(alerts[0], /Import failed/);
+    assert.equal(document.querySelectorAll("#roster .card").length, 1);
+    assert.equal(input.value, "");
+  } finally {
+    window.alert = origAlert;
+  }
+});
+
+test("import of oversized file alerts without parsing", async () => {
+  const { document, window } = await boot();
+  const alerts = [];
+  const origAlert = window.alert;
+  window.alert = msg => alerts.push(msg);
+  try {
+    const file = new window.File(["x".repeat(6 * 1024 * 1024)], "big.json", { type: "application/json" });
+    file.text = async () => "x".repeat(6 * 1024 * 1024);
+    const input = document.getElementById("import-file");
+    Object.defineProperty(input, "files", { value: [file], writable: false });
+    input.dispatchEvent(new window.Event("change", { bubbles: true }));
+    await new Promise(r => setTimeout(r, 50));
+    assert.equal(alerts.length, 1);
+    assert.match(alerts[0], /file too large/);
+    assert.equal(document.querySelectorAll("#roster .card").length, 0);
+  } finally {
+    window.alert = origAlert;
+  }
+});
+
+test("import accepts a file exactly at the size limit", async () => {
+  const { document, window } = await boot();
+  const alerts = [];
+  const origAlert = window.alert;
+  window.alert = msg => alerts.push(msg);
+  try {
+    const payload = JSON.stringify({ roster: [], groups: [] });
+    const file = new window.File([payload], "ok.json", { type: "application/json" });
+    file.text = async () => payload;
+    const input = document.getElementById("import-file");
+    Object.defineProperty(input, "files", { value: [file], writable: false });
+    input.dispatchEvent(new window.Event("change", { bubbles: true }));
+    await new Promise(r => setTimeout(r, 50));
+    assert.equal(alerts.length, 0);
+  } finally {
+    window.alert = origAlert;
+  }
+});
+
+test("btn-import click opens the file picker", async () => {
+  const { document, window } = await boot();
+  let clicked = false;
+  const input = document.getElementById("import-file");
+  const origClick = input.click;
+  input.click = () => { clicked = true; };
+  try {
+    document.getElementById("btn-import").dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
+    assert.ok(clicked);
+  } finally {
+    input.click = origClick;
+  }
+});
+
+test("export click creates a download anchor with the state JSON", async () => {
+  const html = readFileSync("site/index.html", "utf8");
+  const dom = new JSDOM(html, { url: "http://localhost/", pretendToBeVisual: true });
+  const { window } = dom;
+  globalThis.window = window;
+  globalThis.document = window.document;
+  globalThis.localStorage = window.localStorage;
+  globalThis.fetch = async () => ({ ok: true, json: async () => ({ units: UNITS, eras: ERAS }) });
+  window.__AS_MANUAL__ = true;
+  const app = await import(`../site/js/app.js?export=${Date.now()}`);
+  const saved = [];
+  const storage = {
+    importState: text => JSON.parse(text),
+    exportBlob: s => ({ filename: "as-companion-state.json", text: JSON.stringify(s, null, 2) }),
+    loadState: () => ({ roster: [], groups: [] }),
+    saveState: s => saved.push(s),
+  };
+  await app.init({ doc: window.document, storage });
+  const s = window.document.getElementById("search");
+  s.value = "a";
+  s.dispatchEvent(new window.Event("input", { bubbles: true }));
+  window.document.querySelector("#picker-list li button").dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
+  const urls = [];
+  const origCreate = globalThis.URL.createObjectURL;
+  const origRevoke = globalThis.URL.revokeObjectURL;
+  globalThis.URL.createObjectURL = blob => { urls.push(blob); return "blob:mock"; };
+  globalThis.URL.revokeObjectURL = () => {};
+  let anchor = null;
+  const origCreateElement = window.document.createElement.bind(window.document);
+  window.document.createElement = tag => {
+    const el = origCreateElement(tag);
+    if (tag === "a") anchor = el;
+    return el;
+  };
+  try {
+    window.document.getElementById("btn-export").dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
+    assert.ok(anchor, "anchor must be created");
+    assert.equal(anchor.download, "as-companion-state.json");
+    assert.equal(urls.length, 1);
+    const text = await urls[0].text();
+    const parsed = JSON.parse(text);
+    assert.equal(parsed.roster.length, 1);
+  } finally {
+    globalThis.URL.createObjectURL = origCreate;
+    globalThis.URL.revokeObjectURL = origRevoke;
+    window.document.createElement = origCreateElement;
+  }
+});
+
+test("delete group keeps its units as ungrouped", async () => {
+  const { document, window, saved } = await boot();
+  showSomeUnits();
+  const first = document.querySelector("#picker-list li button");
+  first.dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
+  first.dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
+  assert.equal(document.querySelectorAll("#roster .group").length, 1);
+  document.querySelector(".group-delete").dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
+  assert.equal(document.querySelectorAll("#roster .group").length, 1);
+  const ungrouped = document.querySelector('#roster .group[data-group-id="ungrouped"]');
+  assert.ok(ungrouped, "ungrouped section must exist");
+  assert.equal(ungrouped.querySelectorAll(".card").length, 2);
+  assert.equal(document.getElementById("force-pv").textContent, "Force PV: 104");
+  assert.equal(saved.at(-1).groups.length, 0);
+  assert.equal(saved.at(-1).roster.length, 2);
+});
+
+test("init shows error banner when units.json fetch fails", async () => {
+  const html = readFileSync("site/index.html", "utf8");
+  const dom = new JSDOM(html, { url: "http://localhost/", pretendToBeVisual: true });
+  const { window } = dom;
+  globalThis.window = window;
+  globalThis.document = window.document;
+  globalThis.localStorage = window.localStorage;
+  globalThis.fetch = async () => { throw new Error("network down"); };
+  delete window.__AS_MANUAL__;
+  const errors = [];
+  const origError = console.error;
+  console.error = (...args) => errors.push(args);
+  try {
+    await import(`../site/js/app.js?banner=${Date.now()}`);
+    await new Promise(r => setTimeout(r, 50));
+    const banner = window.document.querySelector(".load-error");
+    assert.ok(banner, "error banner must be present");
+    assert.match(banner.textContent, /Could not load unit data/);
+  } finally {
+    console.error = origError;
+  }
+});
+
+test("init auto-boots when __AS_MANUAL__ is unset", async () => {
+  const html = readFileSync("site/index.html", "utf8");
+  const dom = new JSDOM(html, { url: "http://localhost/", pretendToBeVisual: true });
+  const { window } = dom;
+  globalThis.window = window;
+  globalThis.document = window.document;
+  globalThis.localStorage = window.localStorage;
+  globalThis.fetch = async () => ({ ok: true, json: async () => ({ units: UNITS, eras: ERAS }) });
+  delete window.__AS_MANUAL__;
+  await import(`../site/js/app.js?autoboot=${Date.now()}`);
+  await new Promise(r => setTimeout(r, 50));
+  const items = window.document.querySelectorAll("#picker-list li");
+  assert.equal(items.length, 1);
+  assert.match(items[0].className, /picker-hint/);
+});
+
+test("init auto-boot survives corrupt localStorage", async () => {
+  const html = readFileSync("site/index.html", "utf8");
+  const dom = new JSDOM(html, { url: "http://localhost/", pretendToBeVisual: true });
+  const { window } = dom;
+  globalThis.window = window;
+  globalThis.document = window.document;
+  globalThis.localStorage = window.localStorage;
+  globalThis.fetch = async () => ({ ok: true, json: async () => ({ units: UNITS, eras: ERAS }) });
+  window.localStorage.setItem("as-companion-state-v1", "{not json");
+  delete window.__AS_MANUAL__;
+  await import(`../site/js/app.js?corrupt=${Date.now()}`);
+  await new Promise(r => setTimeout(r, 50));
+  const items = window.document.querySelectorAll("#picker-list li");
+  assert.equal(items.length, 1);
+  assert.match(items[0].className, /picker-hint/);
+  assert.equal(window.document.getElementById("force-pv").textContent, "Force PV: 0");
+});
+
+test("deployed entries get unique ids under rapid clicks", async () => {
+  const { document } = await boot();
+  showSomeUnits();
+  const first = document.querySelector("#picker-list li button");
+  for (let i = 0; i < 5; i++) {
+    first.dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
+  }
+  const ids = [...document.querySelectorAll("#roster .card")].map(c => c.dataset.entryId);
+  assert.equal(new Set(ids).size, 5);
 });
 
 test("import rejects oversized files", async () => {

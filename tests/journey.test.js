@@ -33,7 +33,7 @@ function click(el, win) {
 }
 
 async function settle() {
-  await new Promise(r => setTimeout(r, 200));
+  await new Promise(r => setImmediate(r));
 }
 
 test("JOURNEY: full game night — deploy, damage, heat, crits, refresh, export/import", async () => {

@@ -17,10 +17,10 @@ function safeGetItem(ls) {
   }
 }
 
-export function loadState(ls = globalThis.localStorage) {
+export function loadState(ls) {
   const store = (() => {
     try {
-      return ls;
+      return ls === undefined ? globalThis.localStorage : ls;
     } catch {
       return null;
     }

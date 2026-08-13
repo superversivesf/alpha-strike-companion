@@ -2,3 +2,4 @@ node_modules/
 site/data/
 Alpha-Strike-Tool/
 __pycache__/
+coverage/

@@ -139,18 +139,6 @@ function addTip(el, text) {
   el.dataset.tip = text;
 }
 
-function statRow(label, value) {
-  const row = document.createElement("div");
-  row.className = "stat-row";
-  const lab = document.createElement("b");
-  lab.textContent = label;
-  addTip(lab, STAT_TIPS[label]);
-  const val = document.createElement("span");
-  val.textContent = value;
-  row.append(lab, val);
-  return row;
-}
-
 function identityRow(items) {
   const row = document.createElement("div");
   row.className = "identity-row";
