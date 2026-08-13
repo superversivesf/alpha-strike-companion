@@ -6,6 +6,7 @@ import {
   createGroup, addUnitToGroup, removeUnitFromGroup, setGroupName, groupNameForUnit, groupSizeForUnit,
 } from "./state.js";
 import { makeStorage } from "./storage.js";
+import { ensureSatorDialog, openSatorDialog, closeSatorDialog } from "./dialog.js";
 
 const SAVE_DEBOUNCE_MS = 0;
 const MAX_IMPORT_BYTES = 5 * 1024 * 1024;
@@ -194,6 +195,7 @@ export async function init({ doc, storage }) {
   _doc = doc;
   _storage = storage;
   initTooltips(doc);
+  ensureSatorDialog(doc);
   const res = await fetch("data/units.json");
   if (!res.ok) throw new Error(`Failed to load units.json: ${res.status}`);
   const payload = await res.json();
@@ -271,16 +273,43 @@ export async function init({ doc, storage }) {
     if (card) {
       const entryId = card.dataset.entryId;
       if (e.target.dataset.action === "remove") {
-        const nextGroups = _state.groups
-          .map(g => removeUnitFromGroup(g, entryId))
-          .filter(g => g.unitIds.length > 0);
-        _state = {
-          ..._state,
-          roster: _state.roster.filter(entry => entry.id !== entryId),
-          groups: nextGroups,
+        const btn = e.target;
+        const doRemove = () => {
+          const nextGroups = _state.groups
+            .map(g => removeUnitFromGroup(g, entryId))
+            .filter(g => g.unitIds.length > 0);
+          _state = {
+            ..._state,
+            roster: _state.roster.filter(entry => entry.id !== entryId),
+            groups: nextGroups,
+          };
+          persist();
+          renderRoster();
         };
-        persist();
-        renderRoster();
+        if (btn.classList.contains("armed") || btn.__removeCancelled) {
+          btn.__removeCancelled = false;
+          doRemove();
+          return;
+        }
+        btn.classList.add("armed");
+        btn.textContent = "Sure?";
+        const disarm = () => {
+          btn.classList.remove("armed");
+          btn.textContent = "\u2715";
+          _doc.removeEventListener("click", disarmOutside);
+        };
+        const disarmOutside = ev => {
+          if (ev.target !== btn && !btn.contains(ev.target)) {
+            btn.__removeCancelled = true;
+            disarm();
+          }
+        };
+        _doc.addEventListener("click", disarmOutside);
+        setTimeout(() => {
+          btn.classList.remove("armed");
+          btn.textContent = "\u2715";
+          _doc.removeEventListener("click", disarmOutside);
+        }, 2500);
         return;
       }
       if (e.target.dataset.action === "armor") {
@@ -303,6 +332,15 @@ export async function init({ doc, storage }) {
       }
       if (e.target.dataset.crit) {
         updateEntry(entryId, (entry, unit) => toggleCrit(entry, unit, e.target.dataset.crit, Number(e.target.dataset.index)));
+        return;
+      }
+      if (e.target.dataset.action === "tohit") {
+        const entry = _state.roster.find(en => en.id === entryId);
+        if (!entry) return;
+        const unit = _unitById.get(entry.unitId);
+        if (!unit) return;
+        openSatorDialog({ doc: _doc, attacker: unit, attackerEntry: entry });
+        return;
       }
       return;
     }

@@ -205,7 +205,9 @@ test("heat, crit, and remove actions", async () => {
   const crit = document.querySelector('#roster .crit-slot[data-crit="weapons"][data-index="0"]');
   crit.dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
   assert.ok(document.querySelector('#roster .crit-slot[data-crit="weapons"][data-index="0"].filled'));
-  document.querySelector('#roster .card-remove').dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
+  const removeBtn = document.querySelector('#roster .card-remove');
+  removeBtn.dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
+  removeBtn.dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
   assert.equal(document.querySelectorAll("#roster .card").length, 0);
   assert.equal(document.getElementById("roster-empty").style.display, "");
 });
@@ -232,7 +234,9 @@ test("removing one duplicate unit keeps the other", async () => {
   first.dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
   assert.equal(document.querySelectorAll("#roster .card").length, 2);
   const cards = document.querySelectorAll("#roster .card");
-  cards[0].querySelector(".card-remove").dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
+  const rem = cards[0].querySelector(".card-remove");
+  rem.dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
+  rem.dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
   assert.equal(document.querySelectorAll("#roster .card").length, 1);
   assert.equal(document.querySelectorAll("#roster .group")[0].querySelectorAll(".card").length, 1);
 });
@@ -243,7 +247,9 @@ test("removing the last unit deletes its group", async () => {
   const first = document.querySelector("#picker-list li button");
   first.dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
   assert.equal(document.querySelectorAll("#roster .group").length, 1);
-  document.querySelector("#roster .card-remove").dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
+  const removeBtn = document.querySelector("#roster .card-remove");
+  removeBtn.dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
+  removeBtn.dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
   assert.equal(document.querySelectorAll("#roster .group").length, 0);
   assert.equal(document.querySelectorAll("#roster .card").length, 0);
 });
@@ -587,4 +593,60 @@ test("import rejects oversized files", async () => {
   input.dispatchEvent(new window.Event("change", { bubbles: true }));
   await new Promise(r => setTimeout(r, 50));
   assert.equal(document.querySelectorAll("#roster .card").length, 0);
+});
+
+test("clicking card To-Hit button opens the dialog prefilled", async () => {
+  const { document } = await boot();
+  showSomeUnits();
+  document.querySelector("#picker-list li button").dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
+  document.querySelector(".card-tohit").dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
+  const overlay = document.querySelector(".sator-overlay");
+  assert.ok(overlay, "sator overlay must exist");
+  assert.equal(overlay.hidden, false);
+  assert.equal(overlay.querySelector(".sator-skill-value").textContent, "4");
+});
+
+test("destroyed unit's To-Hit button is disabled", async () => {
+  const { document } = await boot({ state: { roster: [{ id: "e-dead", unitId: "atlas-as7-d", armorDamage: 10, structDamage: 8, heat: 0, crits: { engine: 0, fireControl: 0, mp: 0, weapons: 0, thruster: 0, fuel: 0, crew: 0 }, skill: 4, skillSet: true }], groups: [] } });
+  const btn = document.querySelector(".card-tohit");
+  assert.ok(btn);
+  assert.equal(btn.disabled, true);
+});
+
+test("Esc closes the dialog", async () => {
+  const { document } = await boot();
+  showSomeUnits();
+  document.querySelector("#picker-list li button").dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
+  document.querySelector(".card-tohit").dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
+  const overlay = document.querySelector(".sator-overlay");
+  assert.equal(overlay.hidden, false);
+  document.dispatchEvent(new window.KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+  assert.equal(overlay.hidden, true);
+});
+
+test("remove requires two clicks to confirm", async () => {
+  const { document, saved } = await boot();
+  showSomeUnits();
+  document.querySelector("#picker-list li button").dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
+  assert.equal(document.querySelectorAll("#roster .card").length, 1);
+  const removeBtn = document.querySelector(".card-remove");
+  removeBtn.dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
+  assert.equal(document.querySelectorAll("#roster .card").length, 1, "first click must not remove");
+  assert.ok(removeBtn.classList.contains("armed"));
+  removeBtn.dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
+  assert.equal(document.querySelectorAll("#roster .card").length, 0);
+  assert.equal(saved.at(-1).roster.length, 0);
+});
+
+test("remove arming is cancelled by clicking elsewhere, then next click removes", async () => {
+  const { document } = await boot();
+  showSomeUnits();
+  document.querySelector("#picker-list li button").dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
+  const removeBtn = document.querySelector(".card-remove");
+  removeBtn.dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
+  assert.ok(removeBtn.classList.contains("armed"));
+  document.querySelector(".card-title").dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
+  assert.ok(!removeBtn.classList.contains("armed"), "outside click must cancel arming");
+  removeBtn.dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
+  assert.equal(document.querySelectorAll("#roster .card").length, 0, "click after cancel removes immediately");
 });
