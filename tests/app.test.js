@@ -41,11 +41,10 @@ async function settle() {
   await new Promise(r => setTimeout(r, 200));
 }
 
-async function showSomeUnits() {
+function showSomeUnits() {
   const s = document.getElementById("search");
   s.value = "a";
   s.dispatchEvent(new window.Event("input", { bubbles: true }));
-  await settle();
 }
 
 test("init loads units, populates filters and picker", async () => {
@@ -135,11 +134,25 @@ test("no-match state shows a distinct message", async () => {
   const input = document.getElementById("search");
   input.value = "zzz-no-such-unit";
   input.dispatchEvent(new window.Event("input", { bubbles: true }));
-  await settle();
   const items = document.querySelectorAll("#picker-list li");
   assert.equal(items.length, 1);
   assert.match(items[0].className, /picker-empty/);
-  assert.match(items[0].textContent, /No units found/);
+  assert.equal(items[0].textContent, "No units found.");
+  assert.equal(items[0].querySelector("button"), null);
+});
+
+test("no-match via filters only shows the distinct message", async () => {
+  const { document } = await boot();
+  const side = document.getElementById("side-filter");
+  side.value = "Clan";
+  side.dispatchEvent(new window.Event("change", { bubbles: true }));
+  const era = document.getElementById("era-filter");
+  era.value = "Age of War";
+  era.dispatchEvent(new window.Event("change", { bubbles: true }));
+  const items = document.querySelectorAll("#picker-list li");
+  assert.equal(items.length, 1);
+  assert.match(items[0].className, /picker-empty/);
+  assert.equal(items[0].textContent, "No units found.");
 });
 
 test("whitespace-only search shows the hint", async () => {
@@ -147,10 +160,12 @@ test("whitespace-only search shows the hint", async () => {
   const input = document.getElementById("search");
   input.value = "   ";
   input.dispatchEvent(new window.Event("input", { bubbles: true }));
-  await settle();
   const items = document.querySelectorAll("#picker-list li");
   assert.equal(items.length, 1);
   assert.match(items[0].className, /picker-hint/);
+  assert.equal(items[0].textContent, "Start typing or select a filter to browse units.");
+  assert.equal(items[0].querySelector("button"), null);
+  assert.equal(items[0].getAttribute("tabindex"), null);
 });
 
 test("adding units renders cards and updates force PV", async () => {

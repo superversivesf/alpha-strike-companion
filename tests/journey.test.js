@@ -127,7 +127,6 @@ test("JOURNEY: units auto-group into Lances (IS) and Stars (Clan)", async () => 
   const search0 = document.getElementById("search");
   search0.value = "a";
   search0.dispatchEvent(new window.Event("input", { bubbles: true }));
-  await settle();
   click(document.querySelector("#picker-list li button"), window);
   click(document.querySelector("#picker-list li button"), window);
   let groups = document.querySelectorAll("#roster .group");
@@ -179,7 +178,6 @@ test("JOURNEY: group names are fixed at creation and stable", async () => {
   const search0 = document.getElementById("search");
   search0.value = "a";
   search0.dispatchEvent(new window.Event("input", { bubbles: true }));
-  await settle();
   for (let i = 0; i < 5; i++) {
     click(document.querySelector("#picker-list li button"), window);
   }
@@ -239,7 +237,6 @@ test("JOURNEY: search and type-filter interaction", async () => {
   // Reset both — back to the idle hint
   search.value = "";
   search.dispatchEvent(new window.Event("input", { bubbles: true }));
-  await settle();
   const idle = document.querySelectorAll("#picker-list li");
   assert.equal(idle.length, 1);
   assert.match(idle[0].className, /picker-hint/);

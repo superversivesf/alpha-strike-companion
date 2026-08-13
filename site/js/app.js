@@ -108,7 +108,23 @@ function renderPicker() {
   const size = el("size-filter").value;
   const list = el("picker-list");
   list.innerHTML = "";
+  const q = query.trim();
+  const isDefault = !q && !type && !era && !side && !role && !size;
+  if (isDefault) {
+    const hint = _doc.createElement("li");
+    hint.className = "picker-hint";
+    hint.textContent = "Start typing or select a filter to browse units.";
+    list.append(hint);
+    return;
+  }
   const matches = filterUnits(_units, { query, type, era, side, role, size });
+  if (matches.length === 0) {
+    const empty = _doc.createElement("li");
+    empty.className = "picker-empty";
+    empty.textContent = "No units found.";
+    list.append(empty);
+    return;
+  }
   for (const unit of matches) {
     const li = _doc.createElement("li");
     const btn = _doc.createElement("button");
