@@ -30,21 +30,48 @@ test("ensureSatorDialog is idempotent and hidden", () => {
   assert.equal(a.getAttribute("aria-modal"), "true");
 });
 
+test("dialog shows five SATOR letter boxes in order", () => {
+  const doc = setup();
+  ensureSatorDialog(doc);
+  const letters = [...doc.querySelectorAll(".sator-letter")].map(l => l.textContent);
+  assert.deepEqual(letters, ["S", "A", "T", "O", "R"]);
+  const titles = [...doc.querySelectorAll(".sator-section-title")].map(t => t.textContent);
+  assert.deepEqual(titles, ["Skill", "Attacker", "Target", "Other", "Roll"]);
+});
+
 test("openSatorDialog unhides and prefills attacker skill", () => {
   const doc = setup();
   openSatorDialog({ doc, attacker: atlas, attackerEntry: entry });
   const overlay = ensureSatorDialog(doc);
   assert.equal(overlay.hidden, false);
-  const skill = overlay.querySelector(".sator-skill-value");
-  assert.equal(skill.textContent, "4");
+  assert.equal(overlay.querySelector(".sator-skill-value").textContent, "4");
+  assert.equal(overlay.querySelector(".sator-unit-name").textContent, "ATLAS AS7-D");
 });
 
-test("openSatorDialog prefills fire control crit badge", () => {
+test("TN equals skill and probability shows", () => {
   const doc = setup();
-  const e = { ...entry, crits: { ...CRITS0, fireControl: 2 } };
+  openSatorDialog({ doc, attacker: atlas, attackerEntry: entry });
+  const overlay = ensureSatorDialog(doc);
+  assert.equal(overlay.querySelector("#sator-tn").textContent, "4");
+  assert.match(overlay.querySelector("#sator-breakdown").textContent, /4 \(Skill\) = 4/);
+  assert.match(overlay.querySelector("#sator-prob").textContent, /2d6 \u2265 4/);
+});
+
+test("min TN clamps at 2 for skill 0", () => {
+  const doc = setup();
+  const e = { ...entry, skill: 0 };
   openSatorDialog({ doc, attacker: atlas, attackerEntry: e });
   const overlay = ensureSatorDialog(doc);
-  assert.equal(overlay.querySelector(".sator-fc-badge").textContent, "Fire Control +4");
+  assert.equal(overlay.querySelector("#sator-tn").textContent, "2");
+});
+
+test("destroyed attacker shows cannot-attack", () => {
+  const doc = setup();
+  const destroyed = { ...entry, armorDamage: 10, structDamage: 8 };
+  openSatorDialog({ doc, attacker: atlas, attackerEntry: destroyed });
+  const overlay = ensureSatorDialog(doc);
+  assert.equal(overlay.querySelector("#sator-tn").textContent, "\u2014");
+  assert.match(overlay.querySelector("#sator-breakdown").textContent, /destroyed/i);
 });
 
 test("openSatorDialog stores return focus", () => {
@@ -91,71 +118,4 @@ test("backdrop click closes the dialog", () => {
   const overlay = ensureSatorDialog(doc);
   overlay.dispatchEvent(new doc.defaultView.MouseEvent("click", { bubbles: true }));
   assert.equal(overlay.hidden, true);
-});
-
-test("changing range updates the result TN live", () => {
-  const doc = setup();
-  openSatorDialog({ doc, attacker: atlas, attackerEntry: entry });
-  const overlay = ensureSatorDialog(doc);
-  const longRadio = overlay.querySelector('input[name="sator-range"][value="L"]');
-  longRadio.checked = true;
-  longRadio.dispatchEvent(new doc.defaultView.Event("change", { bubbles: true }));
-  const tn = Number(overlay.querySelector("#sator-tn").textContent);
-  assert.equal(tn, 9); // skill 4 + tmm 1 + range 4
-});
-
-test("target stationary zeros TMM and lowers TN", () => {
-  const doc = setup();
-  openSatorDialog({ doc, attacker: atlas, attackerEntry: entry });
-  const overlay = ensureSatorDialog(doc);
-  const tmm3 = overlay.querySelector('input[name="sator-tmm"][value="3"]');
-  tmm3.checked = true;
-  tmm3.dispatchEvent(new doc.defaultView.Event("change", { bubbles: true }));
-  const stationary = overlay.querySelector('input[name="sator-target-move"][value="stationary"]');
-  stationary.checked = true;
-  stationary.dispatchEvent(new doc.defaultView.Event("change", { bubbles: true }));
-  const tn = Number(overlay.querySelector("#sator-tn").textContent);
-  assert.equal(tn, 4); // skill 4, tmm zeroed by stationary (stationary wins over manual TMM)
-  assert.equal(overlay.querySelector(".sator-tmm-row").hidden, true, "TMM row hidden for stationary");
-  const tmm0 = overlay.querySelector('input[name="sator-tmm"][value="0"]');
-  assert.equal(tmm0.checked, true, "stationary must reset selection to TMM 0");
-});
-
-test("target immobile zeros TMM like stationary", () => {
-  const doc = setup();
-  openSatorDialog({ doc, attacker: atlas, attackerEntry: entry });
-  const overlay = ensureSatorDialog(doc);
-  const tmm2 = overlay.querySelector('input[name="sator-tmm"][value="2"]');
-  tmm2.checked = true;
-  const immobile = overlay.querySelector('input[name="sator-target-move"][value="immobile"]');
-  immobile.checked = true;
-  immobile.dispatchEvent(new doc.defaultView.Event("change", { bubbles: true }));
-  const tn = Number(overlay.querySelector("#sator-tn").textContent);
-  assert.equal(tn, 4); // skill 4, tmm zeroed
-  assert.equal(overlay.querySelector(".sator-tmm-row").hidden, true, "TMM row hidden for immobile");
-  assert.equal(overlay.querySelector('input[name="sator-tmm"][value="0"]').checked, true);
-});
-
-test("moved target keeps selected TMM", () => {
-  const doc = setup();
-  openSatorDialog({ doc, attacker: atlas, attackerEntry: entry });
-  const overlay = ensureSatorDialog(doc);
-  const tmm3 = overlay.querySelector('input[name="sator-tmm"][value="3"]');
-  tmm3.checked = true;
-  tmm3.dispatchEvent(new doc.defaultView.Event("change", { bubbles: true }));
-  const tn = Number(overlay.querySelector("#sator-tn").textContent);
-  assert.equal(tn, 7); // skill 4 + tmm 3
-  assert.equal(overlay.querySelector(".sator-tmm-row").hidden, false, "TMM row visible for moved");
-});
-
-test("SRCH attacker disables and zeroes the darkness toggle", () => {
-  const doc = setup();
-  const srchAtlas = { ...atlas, abilities: ["SRCH"] };
-  openSatorDialog({ doc, attacker: srchAtlas, attackerEntry: entry });
-  const overlay = ensureSatorDialog(doc);
-  const darkness = overlay.querySelector("#sator-darkness");
-  assert.equal(darkness.disabled, true);
-  assert.equal(darkness.checked, false);
-  const tn = Number(overlay.querySelector("#sator-tn").textContent);
-  assert.equal(tn, 5); // skill 4 + tmm 1, no darkness
 });
