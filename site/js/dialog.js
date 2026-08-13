@@ -1,4 +1,4 @@
-import { hitProbability, attackerMoveMod, targetMoveMod, targetUsesTmm, rangeModifier } from "./sator.js";
+import { hitProbability, attackerMoveMod, targetMoveMod, targetUsesTmm, rangeModifier, heatMod } from "./sator.js";
 
 const STEPS = [
   ["S", "Skill", "Skill — the pilot's skill rating (0–6). Lower is better; changes the unit's Point Value."],
@@ -179,10 +179,21 @@ function buildDialog(doc) {
       panel.append(tgtMode, tmmGroup, jetsRow);
     }
     if (letter === "O") {
+      const heatRow = doc.createElement("div");
+      heatRow.className = "sator-row sator-heat-row";
+      const heatLabel = doc.createElement("label");
+      heatLabel.textContent = "Attacker Heat (from card)";
+      const heatValue = doc.createElement("span");
+      heatValue.id = "sator-heat-value";
+      heatValue.className = "sator-heat-value";
+      heatRow.append(heatLabel, heatValue);
+      const heatNote = doc.createElement("div");
+      heatNote.className = "sator-heat-note";
+      heatNote.textContent = "Heat level adds to the target number. Set on the card — read-only here.";
       const otherNote = doc.createElement("div");
       otherNote.className = "sator-empty-note";
-      otherNote.textContent = "Coming soon — range, terrain, and situational modifiers.";
-      panel.append(otherNote);
+      otherNote.textContent = "More situational modifiers coming soon — indirect fire, darkness, and special abilities.";
+      panel.append(heatRow, heatNote, otherNote);
     }
     if (letter === "R") {
       const rangeGroup = doc.createElement("div");
@@ -276,11 +287,13 @@ function buildDialog(doc) {
     const move = attackerMoveMod(atkMove);
     const tgt = targetMoveMod(tgtMode, tmm, jets);
     const rng = rangeModifier(range);
-    const tn = Math.max(2, skill + move + tgt + rng);
+    const heat = heatMod(currentEntry.heat);
+    const tn = Math.max(2, skill + move + tgt + rng + heat);
     const parts = [`${skill} (Skill)`];
     if (move !== 0) parts.push(`${move > 0 ? "+" : ""}${move} (Move)`);
     if (tgt !== 0) parts.push(`${tgt > 0 ? "+" : ""}${tgt} (Target)`);
     if (rng !== 0) parts.push(`${rng > 0 ? "+" : ""}${rng} (Range)`);
+    if (heat !== 0) parts.push(`+${heat} (Heat)`);
     parts.push(`= ${tn}`);
     return { tn, breakdown: parts.join(" "), probability: hitProbability(tn), impossible: tn > 12 };
   }
@@ -343,6 +356,8 @@ function buildDialog(doc) {
   function open() {
     const skillEl = panels.S.querySelector(".sator-skill-value");
     skillEl.textContent = String(currentEntry.skill);
+    const heatValue = dialog.querySelector("#sator-heat-value");
+    if (heatValue) heatValue.textContent = currentEntry.heat === "S" ? "S (shutdown)" : String(currentEntry.heat || 0);
     const tmm0 = dialog.querySelector('input[name="sator-tmm"][value="0"]');
     if (tmm0) tmm0.checked = true;
     const jetsInput = dialog.querySelector("#sator-jets");

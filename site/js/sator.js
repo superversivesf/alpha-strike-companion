@@ -81,8 +81,13 @@ export function abilityModifier(unit, { rangeBand, targetMovement }) {
   return mod;
 }
 
-export function hitProbability(tn) {
-  const P = [0, 0, 0.972, 0.972, 0.917, 0.833, 0.722, 0.583, 0.417, 0.278, 0.167, 0.083, 0.028];
+export function heatMod(heat) {
+  if (heat === "S") return 0;
+  const n = Number(heat) || 0;
+  return Math.max(0, Math.min(3, n));
+}
+
+export function hitProbability(tn) {  const P = [0, 0, 0.972, 0.972, 0.917, 0.833, 0.722, 0.583, 0.417, 0.278, 0.167, 0.083, 0.028];
   if (tn <= 2) return 0.972;
   if (tn >= 12) return 0.028;
   return P[tn];

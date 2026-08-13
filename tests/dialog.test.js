@@ -59,6 +59,32 @@ test("only the current step panel is visible", () => {
   assert.deepEqual([...doc.querySelectorAll(".sator-panel")].filter(p => !p.hidden).map(p => p.dataset.step), ["#"]);
 });
 
+test("heat from card state factors into TN and shows in O step", () => {
+  const doc = setup();
+  const e = { ...entry, heat: 2 };
+  open(doc, e);
+  const overlay = ensureSatorDialog(doc);
+  doc.querySelector("#sator-next").click(); // A
+  doc.querySelector("#sator-next").click(); // T
+  doc.querySelector("#sator-next").click(); // O
+  assert.equal(overlay.querySelector("#sator-heat-value").textContent, "2");
+  doc.querySelector("#sator-next").click(); // R
+  doc.querySelector("#sator-next").click(); // #
+  assert.equal(overlay.querySelector("#sator-run-tn").textContent, "6"); // 4 + heat 2
+  assert.match(overlay.querySelector("#sator-breakdown").textContent, /\+2 \(Heat\)/);
+});
+
+test("heat row shows shutdown on the O step", () => {
+  const doc = setup();
+  open(doc, { ...entry, heat: "S" });
+  const overlay = ensureSatorDialog(doc);
+  doc.querySelector("#sator-next").click(); // A
+  doc.querySelector("#sator-next").click(); // T
+  doc.querySelector("#sator-next").click(); // O
+  assert.equal(overlay.querySelector("#sator-heat-value").textContent, "S (shutdown)");
+  assert.equal(overlay.querySelector("#sator-run-tn").textContent, "\u2014");
+});
+
 test("range step changes TN and breakdown", () => {
   const doc = setup();
   open(doc);

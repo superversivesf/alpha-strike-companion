@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {
   rangeModifier, movementModifier, terrainModifier, effectiveTargetTmm,
   attackerTypeModifier, abilityModifier, hitProbability, attackerToHit, attackerMoveMod,
-  targetMoveMod, targetUsesTmm,
+  targetMoveMod, targetUsesTmm, heatMod,
 } from "../site/js/sator.js";
 
 const CRITS0 = { engine: 0, fireControl: 0, mp: 0, weapons: 0, thruster: 0, fuel: 0, crew: 0 };
@@ -32,6 +32,15 @@ test("attackerMoveMod table", () => {
   assert.equal(attackerMoveMod("ground"), 0);
   assert.equal(attackerMoveMod("jump"), 2);
   assert.equal(attackerMoveMod("bogus"), 0);
+});
+
+test("heatMod maps heat level to TN modifier", () => {
+  assert.equal(heatMod(0), 0);
+  assert.equal(heatMod(1), 1);
+  assert.equal(heatMod(2), 2);
+  assert.equal(heatMod(3), 3);
+  assert.equal(heatMod("S"), 0, "shutdown is handled by cannotAttack, not a modifier");
+  assert.equal(heatMod(99), 3, "clamped at 3");
 });
 
 test("targetUsesTmm identifies TMM-consuming modes", () => {

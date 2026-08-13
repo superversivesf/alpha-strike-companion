@@ -825,6 +825,27 @@ h1, h2, h3 { font-family: var(--font-head); letter-spacing: 0.06em; }
   font-style: italic;
   padding: 18px 0;
 }
+.sator-heat-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0 2px;
+}
+.sator-heat-row label {
+  color: var(--muted);
+  font-size: 13px;
+}
+.sator-heat-value {
+  font-family: var(--font-head);
+  font-size: 22px;
+  color: var(--tan);
+}
+.sator-heat-note {
+  font-size: 11px;
+  color: var(--muted);
+  font-style: italic;
+  padding-bottom: 6px;
+}
 
 /* wizard */
 .sator-progress {
