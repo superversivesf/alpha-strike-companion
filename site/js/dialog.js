@@ -48,11 +48,9 @@ function buildDialog(doc) {
     sectionTitle.textContent = name;
     content.append(sectionTitle);
     if (letter === "S") {
-      const unitName = doc.createElement("div");
-      unitName.className = "sator-unit-name";
       const skillValue = doc.createElement("div");
       skillValue.className = "sator-skill-value";
-      content.append(unitName, skillValue);
+      content.append(skillValue);
     }
     row.append(letterBox, content);
     body.append(row);
@@ -108,8 +106,6 @@ function buildDialog(doc) {
   }
 
   function open() {
-    dialog.querySelector(".sator-unit-name").textContent =
-      `${currentAttacker.class} ${currentAttacker.variant}`;
     const skillEl = dialog.querySelector(".sator-skill-value");
     skillEl.textContent = String(currentEntry.skill);
     recompute();

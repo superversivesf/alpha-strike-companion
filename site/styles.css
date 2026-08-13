@@ -733,7 +733,6 @@ h1, h2, h3 { font-family: var(--font-head); letter-spacing: 0.06em; }
   text-transform: uppercase;
   color: var(--muted);
 }
-.sator-unit-name { font-weight: 600; }
 .sator-skill-value {
   font-family: var(--font-head);
   font-size: 26px;

@@ -45,7 +45,6 @@ test("openSatorDialog unhides and prefills attacker skill", () => {
   const overlay = ensureSatorDialog(doc);
   assert.equal(overlay.hidden, false);
   assert.equal(overlay.querySelector(".sator-skill-value").textContent, "4");
-  assert.equal(overlay.querySelector(".sator-unit-name").textContent, "ATLAS AS7-D");
 });
 
 test("TN equals skill and probability shows", () => {
