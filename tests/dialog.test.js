@@ -19,6 +19,11 @@ function setup() {
   return window.document;
 }
 
+function open(doc, e = entry) {
+  openSatorDialog({ doc, attacker: atlas, attackerEntry: e });
+  return ensureSatorDialog(doc);
+}
+
 test("ensureSatorDialog is idempotent and hidden", () => {
   const doc = setup();
   const a = ensureSatorDialog(doc);
@@ -30,140 +35,101 @@ test("ensureSatorDialog is idempotent and hidden", () => {
   assert.equal(a.getAttribute("aria-modal"), "true");
 });
 
-test("dialog shows five SATOR letter boxes in order", () => {
+test("wizard shows five step pills in order", () => {
   const doc = setup();
   ensureSatorDialog(doc);
-  const letters = [...doc.querySelectorAll(".sator-letter")].map(l => l.textContent);
+  const letters = [...doc.querySelectorAll(".sator-pill")].map(p => p.dataset.step);
   assert.deepEqual(letters, ["S", "A", "T", "O", "R"]);
 });
 
-test("letter boxes carry descriptive tooltips", () => {
+test("only the current step panel is visible", () => {
   const doc = setup();
-  ensureSatorDialog(doc);
-  const tips = [...doc.querySelectorAll(".sator-letter")].map(l => l.dataset.tip);
-  assert.equal(tips.length, 5);
-  assert.match(tips[0], /^Skill —/);
-  assert.match(tips[1], /^Attacker —/);
-  assert.match(tips[2], /^Target —/);
-  assert.match(tips[3], /^Other —/);
-  assert.match(tips[4], /^Roll —/);
+  open(doc);
+  const visible = [...doc.querySelectorAll(".sator-panel")].filter(p => !p.hidden).map(p => p.dataset.step);
+  assert.deepEqual(visible, ["S"]);
+  doc.querySelector("#sator-next").click();
+  assert.deepEqual([...doc.querySelectorAll(".sator-panel")].filter(p => !p.hidden).map(p => p.dataset.step), ["A"]);
+  doc.querySelector("#sator-next").click();
+  assert.deepEqual([...doc.querySelectorAll(".sator-panel")].filter(p => !p.hidden).map(p => p.dataset.step), ["T"]);
+  doc.querySelector("#sator-next").click();
+  assert.deepEqual([...doc.querySelectorAll(".sator-panel")].filter(p => !p.hidden).map(p => p.dataset.step), ["O"]);
+  doc.querySelector("#sator-next").click();
+  assert.deepEqual([...doc.querySelectorAll(".sator-panel")].filter(p => !p.hidden).map(p => p.dataset.step), ["R"]);
 });
 
 test("openSatorDialog unhides and prefills attacker skill", () => {
   const doc = setup();
-  openSatorDialog({ doc, attacker: atlas, attackerEntry: entry });
-  const overlay = ensureSatorDialog(doc);
+  const overlay = open(doc);
   assert.equal(overlay.hidden, false);
-  assert.equal(overlay.querySelector(".sator-skill-value").textContent, "4");
+  assert.equal(overlay.querySelector(".sator-panel[data-step=\"S\"] .sator-skill-value").textContent, "4");
 });
 
-test("TN equals skill and probability shows", () => {
+test("running TN appears in footer and updates with movement", () => {
   const doc = setup();
-  openSatorDialog({ doc, attacker: atlas, attackerEntry: entry });
+  open(doc);
   const overlay = ensureSatorDialog(doc);
-  assert.equal(overlay.querySelector("#sator-tn").textContent, "4");
-  assert.match(overlay.querySelector("#sator-breakdown").textContent, /4 \(Skill\) = 4/);
-  assert.match(overlay.querySelector("#sator-prob").textContent, /2d6 \u2265 4/);
-});
-
-test("attacker movement changes TN live", () => {
-  const doc = setup();
-  openSatorDialog({ doc, attacker: atlas, attackerEntry: entry });
-  const overlay = ensureSatorDialog(doc);
+  assert.equal(overlay.querySelector("#sator-run-tn").textContent, "4");
+  doc.querySelector("#sator-next").click();
   overlay.querySelector('input[name="sator-atk-move"][value="standstill"]').click();
-  assert.equal(overlay.querySelector("#sator-tn").textContent, "3");
-  assert.match(overlay.querySelector("#sator-breakdown").textContent, /-1 \(Move\)/);
-  overlay.querySelector('input[name="sator-atk-move"][value="ground"]').click();
-  assert.equal(overlay.querySelector("#sator-tn").textContent, "4");
+  assert.equal(overlay.querySelector("#sator-run-tn").textContent, "3");
   overlay.querySelector('input[name="sator-atk-move"][value="jump"]').click();
-  assert.equal(overlay.querySelector("#sator-tn").textContent, "6");
-  assert.match(overlay.querySelector("#sator-breakdown").textContent, /\+2 \(Move\)/);
+  assert.equal(overlay.querySelector("#sator-run-tn").textContent, "6");
 });
 
 test("min TN clamps at 2 for skill 0", () => {
   const doc = setup();
-  const e = { ...entry, skill: 0 };
-  openSatorDialog({ doc, attacker: atlas, attackerEntry: e });
-  const overlay = ensureSatorDialog(doc);
-  assert.equal(overlay.querySelector("#sator-tn").textContent, "2");
+  const overlay = open(doc, { ...entry, skill: 0 });
+  assert.equal(overlay.querySelector("#sator-run-tn").textContent, "2");
 });
 
 test("destroyed attacker shows cannot-attack", () => {
   const doc = setup();
-  const destroyed = { ...entry, armorDamage: 10, structDamage: 8 };
-  openSatorDialog({ doc, attacker: atlas, attackerEntry: destroyed });
-  const overlay = ensureSatorDialog(doc);
+  const overlay = open(doc, { ...entry, armorDamage: 10, structDamage: 8 });
   assert.equal(overlay.querySelector("#sator-tn").textContent, "\u2014");
   assert.match(overlay.querySelector("#sator-breakdown").textContent, /destroyed/i);
 });
 
-test("openSatorDialog stores return focus", () => {
+test("target modes reveal TMM and jets conditionally", () => {
   const doc = setup();
-  const btn = doc.createElement("button");
-  doc.body.append(btn);
-  btn.focus();
-  openSatorDialog({ doc, attacker: atlas, attackerEntry: entry });
+  open(doc);
   const overlay = ensureSatorDialog(doc);
-  assert.equal(overlay.__returnFocus, btn);
-});
-
-test("closeSatorDialog hides and returns focus", () => {
-  const doc = setup();
-  const btn = doc.createElement("button");
-  doc.body.append(btn);
-  btn.focus();
-  openSatorDialog({ doc, attacker: atlas, attackerEntry: entry });
-  closeSatorDialog(doc);
-  const overlay = ensureSatorDialog(doc);
-  assert.equal(overlay.hidden, true);
-  assert.equal(doc.activeElement, btn);
-});
-
-test("Escape key closes the dialog", () => {
-  const doc = setup();
-  openSatorDialog({ doc, attacker: atlas, attackerEntry: entry });
-  const overlay = ensureSatorDialog(doc);
-  doc.dispatchEvent(new doc.defaultView.KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
-  assert.equal(overlay.hidden, true);
-});
-
-test("close button closes the dialog", () => {
-  const doc = setup();
-  openSatorDialog({ doc, attacker: atlas, attackerEntry: entry });
-  const overlay = ensureSatorDialog(doc);
-  overlay.querySelector(".sator-close").dispatchEvent(new doc.defaultView.MouseEvent("click", { bubbles: true }));
-  assert.equal(overlay.hidden, true);
-});
-
-test("backdrop click closes the dialog", () => {
-  const doc = setup();
-  openSatorDialog({ doc, attacker: atlas, attackerEntry: entry });
-  const overlay = ensureSatorDialog(doc);
-  overlay.dispatchEvent(new doc.defaultView.MouseEvent("click", { bubbles: true }));
-  assert.equal(overlay.hidden, true);
+  doc.querySelector("#sator-next").click(); // A
+  doc.querySelector("#sator-next").click(); // T
+  const tmmGroup = overlay.querySelector(".sator-tmm-group");
+  const jetsRow = overlay.querySelector(".sator-jets");
+  assert.equal(tmmGroup.hidden, false, "ground shows TMM");
+  assert.equal(jetsRow.hidden, true, "ground hides jets");
+  overlay.querySelector('input[name="sator-target-mode"][value="jump"]').click();
+  assert.equal(jetsRow.hidden, false, "jump shows jets");
+  assert.equal(overlay.querySelector("#sator-run-tn").textContent, "5"); // 4 + jump(tmm0+1)
+  overlay.querySelector('input[name="sator-target-mode"][value="immobile"]').click();
+  assert.equal(tmmGroup.hidden, true, "immobile hides TMM");
+  assert.equal(jetsRow.hidden, true, "immobile hides jets");
+  assert.equal(overlay.querySelector("#sator-run-tn").textContent, "2"); // 4 - 4 = 0 -> clamp 2
 });
 
 test("jet stepper buttons adjust the jets value", () => {
   const doc = setup();
-  openSatorDialog({ doc, attacker: atlas, attackerEntry: entry });
+  open(doc);
   const overlay = ensureSatorDialog(doc);
-  const mode = overlay.querySelector("#sator-target-mode");
-  mode.value = "jump";
-  mode.dispatchEvent(new doc.defaultView.Event("change", { bubbles: true }));
+  doc.querySelector("#sator-next").click();
+  doc.querySelector("#sator-next").click();
+  overlay.querySelector('input[name="sator-target-mode"][value="jump"]').click();
   const jetsInput = overlay.querySelector("#sator-jets");
   assert.equal(jetsInput.value, "0");
   overlay.querySelector(".sator-stepper-btn[aria-label=\"Increase jet modifier\"]").click();
   assert.equal(jetsInput.value, "1");
-  assert.equal(overlay.querySelector("#sator-tn").textContent, "6"); // skill 4 + jump (tmm 0 +1) + jets 1 = 6
+  assert.equal(overlay.querySelector("#sator-run-tn").textContent, "6"); // 4 + 1 + 1
   overlay.querySelector(".sator-stepper-btn[aria-label=\"Decrease jet modifier\"]").click();
-  overlay.querySelector(".sator-stepper-btn[aria-label=\"Decrease jet modifier\"]").click();
-  assert.equal(jetsInput.value, "-1");
+  assert.equal(jetsInput.value, "0");
 });
 
 test("jet stepper clamps to data range -3..2", () => {
   const doc = setup();
-  openSatorDialog({ doc, attacker: atlas, attackerEntry: entry });
+  open(doc);
   const overlay = ensureSatorDialog(doc);
+  doc.querySelector("#sator-next").click();
+  doc.querySelector("#sator-next").click();
   const jetsInput = overlay.querySelector("#sator-jets");
   const inc = overlay.querySelector(".sator-stepper-btn[aria-label=\"Increase jet modifier\"]");
   const dec = overlay.querySelector(".sator-stepper-btn[aria-label=\"Decrease jet modifier\"]");
@@ -173,4 +139,83 @@ test("jet stepper clamps to data range -3..2", () => {
   jetsInput.value = "-3";
   dec.click();
   assert.equal(jetsInput.value, "-3", "cannot go below -3");
+});
+
+test("back pill navigates to previous step", () => {
+  const doc = setup();
+  open(doc);
+  doc.querySelector("#sator-next").click();
+  doc.querySelector("#sator-next").click();
+  assert.equal(ensureSatorDialog(doc).querySelector(".sator-panel:not([hidden])").dataset.step, "T");
+  doc.querySelector("#sator-back").click();
+  assert.equal(ensureSatorDialog(doc).querySelector(".sator-panel:not([hidden])").dataset.step, "A");
+  doc.querySelector("#sator-back").click();
+  assert.equal(ensureSatorDialog(doc).querySelector(".sator-panel:not([hidden])").dataset.step, "S");
+  assert.equal(doc.querySelector("#sator-back").disabled, true, "back disabled on first step");
+});
+
+test("pill click jumps to that step", () => {
+  const doc = setup();
+  open(doc);
+  doc.querySelector('.sator-pill[data-step="T"]').click();
+  assert.equal(ensureSatorDialog(doc).querySelector(".sator-panel:not([hidden])").dataset.step, "T");
+});
+
+test("Escape key closes the dialog", () => {
+  const doc = setup();
+  open(doc);
+  const overlay = ensureSatorDialog(doc);
+  doc.dispatchEvent(new doc.defaultView.KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+  assert.equal(overlay.hidden, true);
+});
+
+test("close button closes the dialog", () => {
+  const doc = setup();
+  open(doc);
+  const overlay = ensureSatorDialog(doc);
+  overlay.querySelector(".sator-close").dispatchEvent(new doc.defaultView.MouseEvent("click", { bubbles: true }));
+  assert.equal(overlay.hidden, true);
+});
+
+test("backdrop click closes the dialog", () => {
+  const doc = setup();
+  open(doc);
+  const overlay = ensureSatorDialog(doc);
+  overlay.dispatchEvent(new doc.defaultView.MouseEvent("click", { bubbles: true }));
+  assert.equal(overlay.hidden, true);
+});
+
+test("finish on the R step closes the dialog", () => {
+  const doc = setup();
+  open(doc);
+  doc.querySelector("#sator-next").click();
+  doc.querySelector("#sator-next").click();
+  doc.querySelector("#sator-next").click();
+  doc.querySelector("#sator-next").click();
+  const next = doc.querySelector("#sator-next");
+  assert.equal(next.textContent, "\u2713");
+  next.click();
+  assert.equal(ensureSatorDialog(doc).hidden, true);
+});
+
+test("openSatorDialog stores return focus", () => {
+  const doc = setup();
+  const btn = doc.createElement("button");
+  doc.body.append(btn);
+  btn.focus();
+  open(doc);
+  const overlay = ensureSatorDialog(doc);
+  assert.equal(overlay.__returnFocus, btn);
+});
+
+test("closeSatorDialog hides and returns focus", () => {
+  const doc = setup();
+  const btn = doc.createElement("button");
+  doc.body.append(btn);
+  btn.focus();
+  open(doc);
+  closeSatorDialog(doc);
+  const overlay = ensureSatorDialog(doc);
+  assert.equal(overlay.hidden, true);
+  assert.equal(doc.activeElement, btn);
 });
