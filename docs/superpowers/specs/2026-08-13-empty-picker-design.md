@@ -12,7 +12,7 @@ While empty, the picker shows a hint message explaining how to browse units.
 
 ## Current Behavior
 
-`site/js/app.js` `renderPicker()` (line ~246) renders **all** units into
+`site/js/app.js` `renderPicker()` (line ~102) renders **all** units into
 `#picker-list` on page load and after every search/filter change:
 
 1. Reads `#search` value and the 5 filter selects (`type`, `era`, `side`,
@@ -20,10 +20,11 @@ While empty, the picker shows a hint message explaining how to browse units.
 2. Calls `filterUnits()` (site/js/search.js) with those values.
 3. Appends one `<li><button>` per match.
 
-`init()` calls `renderPicker()` once at the end of setup (app.js:383), after
-`units.json` fetch resolves and filter selects are populated. Search input is
-debounced (120ms); filter `change` events render synchronously. The picker
-collapse toggle (`#picker-toggle`) hides only `.picker-list` via
+`init()` calls `renderPicker()` once at the end of setup (app.js:364), after
+`units.json` fetch resolves and filter selects are populated. Search input
+renders **synchronously** on every `input` event (no debounce — `app.js:220`
+binds `renderPicker` directly); filter `change` events render synchronously.
+The picker collapse toggle (`#picker-toggle`) hides only `.picker-list` via
 `.picker.collapsed .picker-list { display: none; }`.
 
 ## Desired Behavior
@@ -95,41 +96,49 @@ existing empty `<ul>`. Visual style must be distinct from the hint
 
 ### 4. CSS (site/styles.css)
 
-One new rule. Required because `.picker-list li` has no rule today — the
-hint would otherwise show a default disc bullet and default padding:
+Two rules. Required because `.picker-list li` has no rule today — the
+hint would otherwise show a default disc bullet and default padding.
+The shared rule's `flex-basis: 100%` is load-bearing: `.picker-list` is
+`display: flex; flex-wrap: wrap` (styles.css:140), so without it the
+message would render as a single flex item inline with the buttons.
 
 ```css
-.picker-hint {
-  color: var(--muted);
-  font-style: italic;
+.picker-list li.picker-hint,
+.picker-list li.picker-empty {
   list-style: none;
-  padding: 8px;
+  flex-basis: 100%;
+  padding: 8px 0;
+  font-size: 13px;
 }
+.picker-list li.picker-hint { color: var(--muted); font-style: italic; }
 ```
 
-Optionally also style `.picker-empty` (distinct color, `list-style: none`,
-padding) so the no-match message reads differently from the hint.
+`.picker-empty` stays regular weight and normal color so the no-match
+message reads differently from the hint.
 
 ### 5. No other changes
 
-- **No HTML changes** in `index.html`. A static hint element would be
-  visible before JS runs and would not respect the collapse toggle.
+- **No HTML changes** in `index.html` — with one exception: add
+  `aria-label="Available units"` to `<ul id="picker-list">` (index.html:56).
+  The list currently has no accessible name; a screen reader entering it
+  hears "list, 1 item" with no context. This is a static,
+  accessibility-grounded attribute, not a structural change. A static hint
+  element would be visible before JS runs and would not respect the
+  collapse toggle.
 - **No changes** to `search.js` (`filterUnits` is untouched; `search.test.js`
   unaffected).
 - **No changes** to import (`btn-import`) or clear-force (`btn-clear`)
   handlers — neither calls `renderPicker()`, and the picker state
   (hint vs results) correctly persists across both.
-- **No `clearTimeout(searchTimer)` in `renderPicker`** — the timer is scoped
-  to `init()`, and the existing per-input `clearTimeout` already prevents
-  stale renders.
 
 ## Edge Cases (verified by review)
 
 | Scenario | Behavior |
 |---|---|
-| Debounce window (120ms) | Hint persists until timer fires; results then appear. No empty flash frame. |
+| Search input | Synchronous render on every `input` event (no debounce). |
 | Filter change, filter revert to "All…" | Synchronous render; revert triggers guard → hint. No flash. |
 | Whitespace-only query | Treated as default → hint (via `trim()`). |
+| Whitespace query + active filter | `isDefault` is false (filter set) → filtered results shown, not hint. |
 | Collapse picker, then clear search | `renderPicker` runs on hidden list; expand shows hint, no stale results. |
 | Collapse picker with hint | Hint hidden with list; expand restores it. |
 | Focus inside list, then clear search | List re-renders; focus drops to `<body>` (browser default). Pre-existing pattern, acceptable — no focus-restore hack. |
@@ -152,13 +161,16 @@ Changes required:
   prepended (6 callsites).
 - Suggested helper:
   ```js
-  function showSomeUnits(doc, win) {
-    const s = doc.getElementById("search");
+  function showSomeUnits() {
+    const s = document.getElementById("search");
     s.value = "a";
-    s.dispatchEvent(new win.Event("input", { bubbles: true }));
+    s.dispatchEvent(new window.Event("input", { bubbles: true }));
   }
   ```
-  followed by `await settle()` — one line per callsite.
+  No `await settle()` needed — render is synchronous (no debounce).
+  Search `"a"` matches ATLAS AS7-D and ATLAS AS7-K (2 of 3 fixture units;
+  "trooper tp-1r" contains no `a`). Tests click the first button, which is
+  ATLAS AS7-D, so the count is irrelevant to them.
 
 **tests/journey.test.js**
 - L129-130 `"JOURNEY: units auto-group into Lances (IS) and Stars (Clan)"`:
@@ -170,7 +182,9 @@ Changes required:
   (length 1).
 
 **tests/search.test.js** — unaffected (`filterUnits` unchanged).
-**tests/site-structure.test.js** — unaffected (no HTML changes).
+**tests/site-structure.test.js** — add a `.picker-hint` CSS rule assertion
+(see Implementation §4); the regex `/\.picker-hint\s*\{/` matches the
+`.picker-list li.picker-hint` rule start.
 
 ## Out of Scope (explicitly rejected in review)
 
@@ -179,6 +193,5 @@ Changes required:
 - `aria-live` region or `role="status"` announcements.
 - Per-user preference to always show the full list (localStorage flag).
   Ship the change; add a flag only if users complain.
-- Moving `searchTimer` to module scope for `clearTimeout` in `renderPicker`.
 - Static hint element in `index.html`.
 - `renderPicker()` call in the import handler.
