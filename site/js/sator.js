@@ -15,6 +15,10 @@ export function movementModifier(mode) {
   return MOVE_MODS[mode] ?? 0;
 }
 
+export function attackerMoveMod(mode) {
+  return { standstill: -1, ground: 0, jump: 2 }[mode] ?? 0;
+}
+
 export function terrainModifier(terrain) {
   return TERRAIN_MODS[terrain] ?? 0;
 }

@@ -1,4 +1,4 @@
-import { hitProbability } from "./sator.js";
+import { hitProbability, attackerMoveMod } from "./sator.js";
 
 const SATOR_SECTIONS = [
   ["S", "Skill"],
@@ -52,6 +52,23 @@ function buildDialog(doc) {
       skillValue.className = "sator-skill-value";
       content.append(skillValue);
     }
+    if (letter === "A") {
+      const atkMove = doc.createElement("div");
+      atkMove.className = "sator-radio-group";
+      for (const [value, label] of [["standstill", "Standstill \u22121"], ["ground", "Ground 0"], ["jump", "Jump +2"]]) {
+        const l = doc.createElement("label");
+        const r = doc.createElement("input");
+        r.type = "radio";
+        r.name = "sator-atk-move";
+        r.value = value;
+        if (value === "ground") r.checked = true;
+        const s = doc.createElement("span");
+        s.textContent = label;
+        l.append(r, s);
+        atkMove.append(l);
+      }
+      content.append(atkMove);
+    }
     row.append(letterBox, content);
     body.append(row);
     sections.push(row);
@@ -97,10 +114,14 @@ function buildDialog(doc) {
       return;
     }
     const skill = currentEntry.skill;
-    const tn = Math.max(2, skill);
+    const move = attackerMoveMod(dialog.querySelector('input[name="sator-atk-move"]:checked')?.value ?? "ground");
+    const tn = Math.max(2, skill + move);
     tnEl.textContent = String(tn);
     tnEl.classList.toggle("impossible", tn > 12);
-    breakdownEl.textContent = `${skill} (Skill) = ${tn}`;
+    const parts = [`${skill} (Skill)`];
+    if (move !== 0) parts.push(`${move > 0 ? "+" : ""}${move} (Move)`);
+    parts.push(`= ${tn}`);
+    breakdownEl.textContent = parts.join(" ");
     probEl.textContent = `2d6 \u2265 ${tn} \u2192 ${(hitProbability(tn) * 100).toFixed(1)}% chance to hit`;
     noteEl.textContent = "Natural 12 = auto-hit \u00b7 Natural 2 = auto-miss \u00b7 Min TN 2";
   }
@@ -135,6 +156,9 @@ function buildDialog(doc) {
   overlay.addEventListener("click", e => {
     if (e.target === overlay) closeNow();
   });
+
+  dialog.addEventListener("input", recompute);
+  dialog.addEventListener("change", recompute);
 
   return overlay;
 }

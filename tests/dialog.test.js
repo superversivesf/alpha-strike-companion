@@ -56,6 +56,20 @@ test("TN equals skill and probability shows", () => {
   assert.match(overlay.querySelector("#sator-prob").textContent, /2d6 \u2265 4/);
 });
 
+test("attacker movement changes TN live", () => {
+  const doc = setup();
+  openSatorDialog({ doc, attacker: atlas, attackerEntry: entry });
+  const overlay = ensureSatorDialog(doc);
+  overlay.querySelector('input[name="sator-atk-move"][value="standstill"]').click();
+  assert.equal(overlay.querySelector("#sator-tn").textContent, "3");
+  assert.match(overlay.querySelector("#sator-breakdown").textContent, /-1 \(Move\)/);
+  overlay.querySelector('input[name="sator-atk-move"][value="ground"]').click();
+  assert.equal(overlay.querySelector("#sator-tn").textContent, "4");
+  overlay.querySelector('input[name="sator-atk-move"][value="jump"]').click();
+  assert.equal(overlay.querySelector("#sator-tn").textContent, "6");
+  assert.match(overlay.querySelector("#sator-breakdown").textContent, /\+2 \(Move\)/);
+});
+
 test("min TN clamps at 2 for skill 0", () => {
   const doc = setup();
   const e = { ...entry, skill: 0 };

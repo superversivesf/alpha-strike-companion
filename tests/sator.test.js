@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   rangeModifier, movementModifier, terrainModifier, effectiveTargetTmm,
-  attackerTypeModifier, abilityModifier, hitProbability, attackerToHit,
+  attackerTypeModifier, abilityModifier, hitProbability, attackerToHit, attackerMoveMod,
 } from "../site/js/sator.js";
 
 const CRITS0 = { engine: 0, fireControl: 0, mp: 0, weapons: 0, thruster: 0, fuel: 0, crew: 0 };
@@ -24,6 +24,13 @@ test("movementModifier table", () => {
   assert.equal(movementModifier("walk"), 0);
   assert.equal(movementModifier("run"), 1);
   assert.equal(movementModifier("jump"), 1);
+});
+
+test("attackerMoveMod table", () => {
+  assert.equal(attackerMoveMod("standstill"), -1);
+  assert.equal(attackerMoveMod("ground"), 0);
+  assert.equal(attackerMoveMod("jump"), 2);
+  assert.equal(attackerMoveMod("bogus"), 0);
 });
 
 test("terrainModifier table", () => {
