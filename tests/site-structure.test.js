@@ -14,6 +14,7 @@ test("index.html contains required UI structure", () => {
   assert.match(html, /<script type="module" src="js\/app\.js">/);
   assert.match(html, /stylesheet/i);
   assert.match(html, /styles\.css/);
+  assert.match(html, /<ul id="picker-list"[^>]*aria-label="Available units"/);
 });
 
 test("styles.css defines the BattleTech palette", () => {
@@ -25,6 +26,8 @@ test("styles.css defines the BattleTech palette", () => {
   assert.match(css, /\.roster\s*\{/);
   assert.match(css, /\.pip\s*\{/);
   assert.match(css, /overflow-x\s*:\s*auto/);
+  assert.match(css, /\.picker-hint\s*\{/);
+  assert.match(css, /\.picker-empty\s*\{/);
 });
 
 test("styles.css is responsive for small screens", () => {

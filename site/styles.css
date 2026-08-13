@@ -161,6 +161,14 @@ h1, h2, h3 { font-family: var(--font-head); letter-spacing: 0.06em; }
 .picker-list li button:hover { border-color: var(--accent); }
 .picker-list li .pv { color: var(--tan); font-weight: 600; margin-left: 6px; }
 .picker-list li .type { color: var(--muted); font-size: 11px; margin-left: 4px; }
+.picker-list li.picker-hint,
+.picker-list li.picker-empty {
+  list-style: none;
+  flex-basis: 100%;
+  padding: 8px 0;
+  font-size: 13px;
+}
+.picker-list li.picker-hint { color: var(--muted); font-style: italic; }
 
 .picker.collapsed .picker-list { display: none; }
 
