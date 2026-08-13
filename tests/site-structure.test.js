@@ -28,6 +28,9 @@ test("styles.css defines the BattleTech palette", () => {
   assert.match(css, /overflow-x\s*:\s*auto/);
   assert.match(css, /\.picker-hint\s*\{/);
   assert.match(css, /\.picker-empty\s*\{/);
+  assert.match(css, /\.sator-overlay\s*\{/);
+  assert.match(css, /\.sator-dialog\s*\{/);
+  assert.match(css, /\.card-tohit\s*\{/);
 });
 
 test("styles.css is responsive for small screens", () => {
