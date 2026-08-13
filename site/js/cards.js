@@ -414,9 +414,10 @@ export function renderCard(unit, entry = createEntry(unit)) {
 
   const art = document.createElement("div");
   art.className = "card-art";
-  if (unit.image) {
+  const image = typeof unit.image === "string" && /^[A-Za-z0-9._-]+\.webp$/.test(unit.image) ? unit.image : "";
+  if (image) {
     const img = document.createElement("img");
-    img.src = `data/img/${unit.image}`;
+    img.src = `data/img/${image}`;
     img.alt = `${unit.class} ${unit.variant}`;
     img.loading = "lazy";
     art.append(img);

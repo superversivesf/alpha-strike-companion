@@ -8,6 +8,7 @@ import {
 import { makeStorage } from "./storage.js";
 
 const SAVE_DEBOUNCE_MS = 0;
+const MAX_IMPORT_BYTES = 5 * 1024 * 1024;
 
 let _doc = null;
 let _storage = null;
@@ -23,7 +24,12 @@ function el(id) {
 }
 
 function persist() {
-  _storage.saveState(_state);
+  try {
+    _storage.saveState(_state);
+  } catch (err) {
+    // localStorage unavailable or quota exceeded — state stays in memory.
+    console.error("Could not persist state:", err);
+  }
 }
 
 function groupLabel(group) {
@@ -192,6 +198,9 @@ export async function init({ doc, storage }) {
   const res = await fetch("data/units.json");
   if (!res.ok) throw new Error(`Failed to load units.json: ${res.status}`);
   const payload = await res.json();
+  if (!payload || !Array.isArray(payload.units)) {
+    throw new Error("units.json is missing the units array");
+  }
   _units = payload.units;
   _eras = payload.eras || [];
   _unitById = new Map(_units.map(u => [u.id, u]));
@@ -365,6 +374,11 @@ export async function init({ doc, storage }) {
   el("import-file").addEventListener("change", async e => {
     const file = e.target.files[0];
     if (!file) return;
+    if (file.size > MAX_IMPORT_BYTES) {
+      window.alert(`Import failed: file too large (max ${Math.floor(MAX_IMPORT_BYTES / 1024 / 1024)} MB)`);
+      e.target.value = "";
+      return;
+    }
     const text = await file.text();
     try {
       _state = _storage.importState(text);
@@ -382,5 +396,24 @@ export async function init({ doc, storage }) {
 }
 
 if (typeof window !== "undefined" && !window.__AS_MANUAL__) {
-  init({ doc: document, storage: { loadState: () => JSON.parse(localStorage.getItem("as-companion-state-v1") || "null"), saveState: s => localStorage.setItem("as-companion-state-v1", JSON.stringify(s)), exportBlob: s => ({ filename: "as-companion-state.json", text: JSON.stringify(s, null, 2) }) } });
+  init({
+    doc: document,
+    storage: {
+      loadState: () => {
+        try {
+          return JSON.parse(localStorage.getItem("as-companion-state-v1") || "null");
+        } catch {
+          return null;
+        }
+      },
+      saveState: s => localStorage.setItem("as-companion-state-v1", JSON.stringify(s)),
+      exportBlob: s => ({ filename: "as-companion-state.json", text: JSON.stringify(s, null, 2) }),
+    },
+  }).catch(err => {
+    console.error(err);
+    const banner = document.createElement("div");
+    banner.className = "load-error";
+    banner.textContent = "Could not load unit data. Please refresh or check that the site files are intact.";
+    document.body.prepend(banner);
+  });
 }

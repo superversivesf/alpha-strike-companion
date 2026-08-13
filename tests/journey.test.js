@@ -44,12 +44,14 @@ test("JOURNEY: full game night — deploy, damage, heat, crits, refresh, export/
   const search = document.getElementById("search");
   search.value = "atlas";
   search.dispatchEvent(new window.Event("input", { bubbles: true }));
+  await settle();
   let items = [...document.querySelectorAll("#picker-list li button")];
   assert.equal(items.length, 1);
   click(items[0], window);
 
   search.value = "awesome";
   search.dispatchEvent(new window.Event("input", { bubbles: true }));
+  await settle();
   items = [...document.querySelectorAll("#picker-list li button")];
   assert.equal(items.length, 1);
   click(items[0], window);
@@ -139,6 +141,7 @@ test("JOURNEY: units auto-group into Lances (IS) and Stars (Clan)", async () => 
   const search = document.getElementById("search");
   search.value = "awesome";
   search.dispatchEvent(new window.Event("input", { bubbles: true }));
+  await settle();
   click(document.querySelector("#picker-list li button"), window);
   groups = document.querySelectorAll("#roster .group");
   assert.equal(groups.length, 2);
@@ -189,6 +192,7 @@ test("JOURNEY: group names are fixed at creation and stable", async () => {
   const search = document.getElementById("search");
   search.value = "AS7-B";
   search.dispatchEvent(new window.Event("input", { bubbles: true }));
+  await settle();
   click(document.querySelector("#picker-list li button"), window);
   groups = document.querySelectorAll("#roster .group");
   assert.equal(groups.length, 2);
@@ -198,11 +202,13 @@ test("JOURNEY: group names are fixed at creation and stable", async () => {
   // Third star: first two must remain Star 1 / Star 2 — fill Star 2 first
   search.value = "AS7-A";
   search.dispatchEvent(new window.Event("input", { bubbles: true }));
+  await settle();
   for (let i = 0; i < 4; i++) {
     click(document.querySelector("#picker-list li button"), window);
   }
   search.value = "AS7-B";
   search.dispatchEvent(new window.Event("input", { bubbles: true }));
+  await settle();
   click(document.querySelector("#picker-list li button"), window);
   groups = document.querySelectorAll("#roster .group");
   assert.equal(groups.length, 3);
@@ -218,6 +224,7 @@ test("JOURNEY: search and type-filter interaction", async () => {
 
   search.value = "a";
   search.dispatchEvent(new window.Event("input", { bubbles: true }));
+  await settle();
   assert.equal(document.querySelectorAll("#picker-list li").length, 3);
 
   filter.value = "CV";
@@ -230,6 +237,7 @@ test("JOURNEY: search and type-filter interaction", async () => {
   filter.dispatchEvent(new window.Event("change", { bubbles: true }));
   search.value = "AS7";
   search.dispatchEvent(new window.Event("input", { bubbles: true }));
+  await settle();
   items = [...document.querySelectorAll("#picker-list li button")];
   assert.equal(items.length, 1);
   assert.match(items[0].textContent, /AS7-D/);

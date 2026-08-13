@@ -117,11 +117,13 @@ test("search narrows picker; type filter excludes UNK", async () => {
   const input = document.getElementById("search");
   input.value = "as7-k";
   input.dispatchEvent(new window.Event("input", { bubbles: true }));
+  await settle();
   let items = document.querySelectorAll("#picker-list li");
   assert.equal(items.length, 1);
   assert.match(items[0].textContent, /AS7-K/);
   input.value = "";
   input.dispatchEvent(new window.Event("input", { bubbles: true }));
+  await settle();
   const filter = document.getElementById("type-filter");
   filter.value = "BM";
   filter.dispatchEvent(new window.Event("change", { bubbles: true }));
@@ -276,4 +278,15 @@ test("import via file input renders imported roster", async () => {
   assert.equal(cards.length, 1);
   assert.match(cards[0].querySelector(".card-title").textContent, /ATLAS/);
   assert.equal(document.querySelectorAll(".pip.damaged").length, 3);
+});
+
+test("import rejects oversized files", async () => {
+  const { document, window } = await boot();
+  const big = new window.File([new ArrayBuffer(6 * 1024 * 1024)], "big.json", { type: "application/json" });
+  Object.defineProperty(big, "size", { value: 6 * 1024 * 1024 });
+  const input = document.getElementById("import-file");
+  Object.defineProperty(input, "files", { value: [big], writable: false });
+  input.dispatchEvent(new window.Event("change", { bubbles: true }));
+  await new Promise(r => setTimeout(r, 50));
+  assert.equal(document.querySelectorAll("#roster .card").length, 0);
 });

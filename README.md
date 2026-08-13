@@ -38,15 +38,16 @@ root (it is gitignored, so it will not be committed).
 
 ```
 npm install        # dev deps only (jsdom)
-pip install pillow # image conversion to WebP (required)
+pip install pillow==12.2.0 # image conversion to WebP (required)
 npm run build:data # python3 tools/build_data.py → site/data/
 ```
 
 If `pip install pillow` is blocked by your system (PEP 668 "externally
-managed environment" — common on Debian/Ubuntu), install it via:
+managed environment" — common on Debian/Ubuntu), install the same pinned
+version via:
 
 ```
-apt install python3-pil   # Debian/Ubuntu
+apt install python3-pil   # Debian/Ubuntu — version may differ from 12.2.0
 sudo pacman -S python-pillow   # Arch
 brew install pillow           # macOS
 ```
@@ -75,18 +76,25 @@ docker compose up -d        # build + serve on http://localhost:7332
 ```
 
 The image is multi-stage: the data pipeline runs in a Python build stage, and
-the final image is an nginx serving the static site. **The cloned data
+the final image is an nginx serving the static site. **The pinned data
 archive is kept in the final image at `/opt/alpha-strike-tool/`** — this is
 deliberate, so the source data survives even if the upstream repository is
 taken down (rebuilding from a fresh clone would otherwise be impossible).
 This adds ~490 MB to the image (~1 GB total).
 
-To build a slim image without the archive (data is still built and served,
-but the raw archive is discarded):
+The Dockerfile pins the upstream archive to a known-good commit SHA, pins the
+Python/nginx base images by digest, and pins `pillow` to an exact version —
+builds are reproducible and resilient to upstream history rewrites or breaking
+dependency updates. To bump the archive pin:
 
 ```
-docker build --build-arg KEEP_ARCHIVE=0 -t alpha-strike-companion .
+git ls-remote https://github.com/treverhw/Alpha-Strike-Tool.git HEAD
 ```
+
+Update the SHA in `Dockerfile` (and the comment next to it) after inspecting
+the new commit. For local dev, the default compose binding is
+`127.0.0.1:7332:80`; change it to `7332:80` if you deliberately want LAN
+access.
 
 ## Test
 

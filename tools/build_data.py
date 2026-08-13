@@ -26,6 +26,16 @@ EXT_RES_RE = re.compile(r'\[ext_resource\s+type="Texture2D"\s+path="res://Sprite
 IMG_REF_RE = re.compile(r'ExtResource\("([^"]+)"\)')
 ABILITY_RE = re.compile(r"^Array\[String\]\(\[(.*)\]\)$", re.DOTALL)
 
+# Filenames only — rejects path separators, .. traversal, and URL schemes.
+SAFE_IMG_RE = re.compile(r"^[A-Za-z0-9._-]+$")
+
+
+def safe_image_name(name):
+    """Return the name only if it is a plain filename; otherwise None."""
+    if not name or not SAFE_IMG_RE.match(name):
+        return None
+    return name
+
 
 def parse_tres_lines(lines):
     d = {}
@@ -111,8 +121,9 @@ def build_record(path, lines, image_set):
     if ref_m:
         ref_id = ref_m.group(1)
         if ref_id in ext_images:
-            image = ext_images[ref_id]
-            image_set.add(image)
+            image = safe_image_name(ext_images[ref_id]) or ""
+            if image:
+                image_set.add(image)
     pv = to_int(d.get("pv"))
     armor = to_int(d.get("armor"))
     struct = to_int(d.get("struct"))
@@ -166,6 +177,13 @@ def to_webp(src, dst):
         im.save(dst, "WEBP", quality=WEBP_QUALITY, method=6)
 
 
+def path_within(base, target):
+    """True if the resolved target path stays inside the resolved base directory."""
+    base_real = os.path.realpath(base)
+    target_real = os.path.realpath(target)
+    return target_real == base_real or target_real.startswith(base_real + os.sep)
+
+
 MUL_ERA_INFO = [
     (9, "Age of War", 2439, 2571),
     (10, "Star League", 2571, 2781),
@@ -204,13 +222,19 @@ def load_tech_lookup(json_data_dir):
 
 
 def build(units_dir, sprites_dir, site_data_dir, json_data_dir=None):
+    units_root = os.path.realpath(units_dir)
+    sprites_root = os.path.realpath(sprites_dir)
+    img_out_dir = os.path.join(site_data_dir, "img")
+
     image_set = set()
     units = []
-    for dirpath, dirnames, filenames in os.walk(units_dir):
+    for dirpath, dirnames, filenames in os.walk(units_dir, followlinks=False):
         for fn in filenames:
             if not fn.endswith(".tres"):
                 continue
             path = os.path.join(dirpath, fn)
+            if not path_within(units_root, path):
+                raise AssertionError(f".tres outside archive: {path}")
             with open(path, encoding="latin-1") as f:
                 lines = f.read().splitlines()
             units.append(build_record(path, lines, image_set))
@@ -225,14 +249,21 @@ def build(units_dir, sprites_dir, site_data_dir, json_data_dir=None):
     units.sort(key=lambda u: (u["class"].lower(), u["variant"].lower()))
     sanity_check(units, sprites_dir)
 
-    os.makedirs(os.path.join(site_data_dir, "img"), exist_ok=True)
+    os.makedirs(img_out_dir, exist_ok=True)
     for img in sorted(image_set):
         if not (img.endswith(".png") or img.endswith(".jpg")):
             continue
         src = os.path.join(sprites_dir, img)
+        if not path_within(sprites_root, src):
+            raise AssertionError(f"image path escapes sprites dir: {img}")
         if os.path.exists(src):
-            webp_name = os.path.splitext(img)[0] + ".webp"
-            to_webp(src, os.path.join(site_data_dir, "img", webp_name))
+            webp_name = safe_image_name(os.path.splitext(img)[0] + ".webp")
+            if not webp_name:
+                raise AssertionError(f"unsafe image name: {img}")
+            dst = os.path.join(img_out_dir, webp_name)
+            if not path_within(os.path.realpath(img_out_dir), dst):
+                raise AssertionError(f"image output escapes data dir: {img}")
+            to_webp(src, dst)
             for u in units:
                 if u["image"] == img:
                     u["image"] = webp_name

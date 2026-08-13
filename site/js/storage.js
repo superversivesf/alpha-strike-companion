@@ -4,9 +4,29 @@ export const STORAGE_KEY = "as-companion-state-v1";
 
 export const DEFAULT_STATE = { roster: [], groups: [] };
 
-export function loadState(ls = globalThis.localStorage) {
+const MAX_ROSTER = 500;
+const MAX_NAME_LEN = 80;
+const MAX_ID_LEN = 64;
+
+function safeGetItem(ls) {
+  if (!ls) return null;
   try {
-    const raw = ls.getItem(STORAGE_KEY);
+    return ls.getItem(STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function loadState(ls = globalThis.localStorage) {
+  const store = (() => {
+    try {
+      return ls;
+    } catch {
+      return null;
+    }
+  })();
+  try {
+    const raw = safeGetItem(store);
     if (!raw) return DEFAULT_STATE;
     const parsed = JSON.parse(raw);
     if (!parsed || !Array.isArray(parsed.roster)) return DEFAULT_STATE;
@@ -18,6 +38,10 @@ export function loadState(ls = globalThis.localStorage) {
 
 export function saveState(state, ls = globalThis.localStorage) {
   ls.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+export function loadStateSafe(unitById, ls = globalThis.localStorage) {
+  return sanitizeState(loadState(ls), unitById);
 }
 
 export function validateState(obj, unitById) {
@@ -42,6 +66,7 @@ export function sanitizeState(obj, unitById) {
       if (id) seen.add(id);
       return true;
     })
+    .slice(0, MAX_ROSTER)
     .map(entry => {
       const unit = unitById.get(entry.unitId);
       const armorDamage = Math.max(0, Math.min(unit.armor, Number(entry.armorDamage) || 0));
@@ -56,20 +81,27 @@ export function sanitizeState(obj, unitById) {
       const skill = typeof entry.skill === "number" ? Math.max(0, Math.min(6, Math.floor(entry.skill))) : (typeof unit.skill === "number" ? unit.skill : 4);
       const skillSet = Boolean(entry.skillSet);
       const id = typeof entry.id === "string" && entry.id
-        ? entry.id
+        ? entry.id.slice(0, MAX_ID_LEN)
         : `e-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
       return { id, unitId: entry.unitId, armorDamage, structDamage, heat, crits, skill, skillSet };
     });
   const rosterIds = new Set(roster.map(e => e.id));
+  const seenGroups = new Set();
   const groups = Array.isArray(obj.groups)
     ? obj.groups
-        .filter(g => isGroupValid(g))
+        .filter(g => isGroupValid(g) && typeof g.id === "string" && g.id.length > 0)
+        .filter(g => {
+          const truncatedId = g.id.slice(0, MAX_ID_LEN);
+          if (seenGroups.has(truncatedId)) return false;
+          seenGroups.add(truncatedId);
+          return true;
+        })
         .map(g => {
           const size = Math.max(1, Math.min(10, Math.floor(Number(g.size) || 4)));
           const seenIds = new Set();
           return {
-            id: g.id,
-            name: typeof g.name === "string" ? g.name : "",
+            id: g.id.slice(0, MAX_ID_LEN),
+            name: typeof g.name === "string" ? g.name.slice(0, MAX_NAME_LEN) : "",
             size,
             unitIds: g.unitIds
               .filter(id => rosterIds.has(id))
@@ -107,7 +139,7 @@ export function importState(text, unitById) {
 
 export function makeStorage(unitById, ls = globalThis.localStorage) {
   return {
-    loadState: () => loadState(ls),
+    loadState: () => loadStateSafe(unitById, ls),
     saveState: s => saveState(s, ls),
     validateState: obj => validateState(obj, unitById),
     sanitizeState: obj => sanitizeState(obj, unitById),

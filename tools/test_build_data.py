@@ -248,6 +248,32 @@ class TestBuildEndToEnd(unittest.TestCase):
         with self.assertRaises(AssertionError):
             bd.sanity_check(bad, self.sprites_dir)
 
+    def test_build_record_drops_traversal_image(self):
+        evil = FIXTURE_TRES.replace('atlas-rg.png', '../../etc/passwd.png')
+        rec = bd.build_record("t.tres", evil.splitlines(), set())
+        self.assertEqual(rec["image"], "")
+
+    def test_safe_image_name_rejects_traversal_and_urls(self):
+        self.assertEqual(bd.safe_image_name("atlas-rg.png"), "atlas-rg.png")
+        self.assertIsNone(bd.safe_image_name("../../etc/passwd.png"))
+        self.assertIsNone(bd.safe_image_name("a/b.png"))
+        self.assertIsNone(bd.safe_image_name("https://evil.example/track.png"))
+        self.assertIsNone(bd.safe_image_name(""))
+
+    def test_build_rejects_symlinked_tres_outside_archive(self):
+        outside = os.path.join(self.tmp, "rogue.tres")
+        with open(outside, "w", encoding="utf-8") as f:
+            f.write(FIXTURE_TRES)
+        os.symlink(outside, os.path.join(self.units_dir, "ATLAS", "rogue.tres"))
+        with self.assertRaises(AssertionError):
+            bd.build(self.units_dir, self.sprites_dir, os.path.join(self.site_dir, "data"))
+
+    def test_path_within(self):
+        base = os.path.join(self.tmp, "sprites")
+        self.assertTrue(bd.path_within(base, os.path.join(base, "a.png")))
+        self.assertTrue(bd.path_within(base, base))
+        self.assertFalse(bd.path_within(base, os.path.join(base, "..", "secret.png")))
+
 
 if __name__ == "__main__":
     unittest.main()

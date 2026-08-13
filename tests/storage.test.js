@@ -122,3 +122,44 @@ test("makeStorage binds methods to one object", () => {
   storage.saveState(GOOD);
   assert.deepEqual(storage.loadState(), GOOD);
 });
+
+test("makeStorage loadState sanitizes hostile persisted data", () => {
+  const ls = freshLocalStorage();
+  ls.setItem("as-companion-state-v1", JSON.stringify({
+    roster: [{ id: "e1", unitId: "atlas-as7-d", armorDamage: 99, structDamage: -5, heat: "X", crits: { ...CRITS0, engine: 9 } }],
+    groups: [{ id: "g1", name: "x".repeat(500), size: 4, unitIds: ["e1"] }],
+  }));
+  const storage = makeStorage(unitById, ls);
+  const s = storage.loadState();
+  assert.equal(s.roster[0].armorDamage, 10);
+  assert.equal(s.roster[0].structDamage, 0);
+  assert.equal(s.roster[0].heat, 0);
+  assert.equal(s.roster[0].crits.engine, 1);
+  assert.equal(s.groups[0].name.length, 80);
+});
+
+test("sanitizeState caps roster size and entry id length", () => {
+  const big = { roster: [], groups: [] };
+  for (let i = 0; i < 600; i++) {
+    big.roster.push({ id: `e-${i}`, unitId: "atlas-as7-d", armorDamage: 0, structDamage: 0, heat: 0, crits: { ...CRITS0 }, skill: 4, skillSet: false });
+  }
+  const s = sanitizeState(big, unitById);
+  assert.equal(s.roster.length, 500);
+  const longId = sanitizeState({
+    roster: [{ id: "x".repeat(200), unitId: "atlas-as7-d", armorDamage: 0, structDamage: 0, heat: 0, crits: { ...CRITS0 }, skill: 4, skillSet: false }],
+  }, unitById);
+  assert.equal(longId.roster[0].id.length, 64);
+});
+
+test("sanitizeState dedupes group ids and rejects empty ids", () => {
+  const s = sanitizeState({
+    roster: [],
+    groups: [
+      { id: "g1", name: "A", size: 4, unitIds: [] },
+      { id: "g1", name: "B", size: 4, unitIds: [] },
+      { id: "", name: "C", size: 4, unitIds: [] },
+    ],
+  }, unitById);
+  assert.equal(s.groups.length, 1);
+  assert.equal(s.groups[0].name, "A");
+});
