@@ -45,7 +45,10 @@ SATOR = **S**kill + **A**ttacker modifiers + **T**arget modifiers + **O**ther mo
   state.
 - **Target selection:** manual TMM number input only (no roster dropdown; user types
   the target's TMM). Target movement mode radio determines whether TMM applies
-  (Stationary → TMM 0).
+  (Stationary → TMM 0). Note: in v1 the target is the attacker's own unit data
+  (`target` = `attacker`), so target abilities (STL/LMAS/MAS) resolve against the
+  attacker's abilities — i.e. those ability modifiers are effectively inert in the v1
+  UI. Documented as future work when a roster target picker lands.
 - **Result:** large TN (min 2; red when >12 with "only a natural 12 can hit"),
   breakdown line, 2d6 hit probability, natural-12/natural-2 notes.
 
@@ -175,7 +178,7 @@ Reused by `cards.js` (existing DESTROYED stamp + new disabled button), `dialog.j
 | Target shutdown | TMM −4, floor 0 |
 | STL + range change | Modifier re-evaluates live (+1 S/M, +2 L) |
 | LMAS/MAS + target moved | Modifier contributes 0 |
-| Attacker SRCH + darkness | Darkness toggle auto-negated (checkbox disabled + annotated) |
+| Attacker SRCH + darkness | Darkness toggle auto-negated (checkbox disabled + annotated) — implemented in v1 (`dialog.js` disables and zeroes the toggle when the attacker has SRCH) |
 | TN > 12 | Red TN, "only a natural 12 can hit" note, probability 2.8% |
 | TN ≤ 2 | Clamped to 2, probability capped 97.2%, "natural 2 always misses" |
 | Remove arming timeout | 2.5s; click elsewhere or re-render cancels |

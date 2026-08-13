@@ -751,6 +751,10 @@ h1, h2, h3 { font-family: var(--font-head); letter-spacing: 0.06em; }
   align-items: center;
   gap: 4px;
 }
+.sator-chips label.negated {
+  color: var(--muted);
+  text-decoration: line-through;
+}
 .sator-result {
   border-top: 2px solid var(--accent);
   padding: 14px 16px;

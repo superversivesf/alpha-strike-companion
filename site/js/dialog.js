@@ -1,5 +1,8 @@
 import { attackerToHit } from "./sator.js";
 
+const DARKNESS_DEFAULT_LABEL = "Darkness +1";
+const DARKNESS_NEGATED_LABEL = "Darkness (negated by SRCH)";
+
 const TERRAIN_OPTIONS = [
   ["none", "None"],
   ["light-woods", "Light Woods +1"],
@@ -151,7 +154,7 @@ function buildDialog(doc) {
   otherLegend.textContent = "Other";
   const chips = doc.createElement("div");
   chips.className = "sator-chips";
-  for (const [id, label] of [["sator-if", "Indirect Fire +1"], ["sator-rear", "Rear Weapons +1"], ["sator-darkness", "Darkness +1"]]) {
+  for (const [id, label] of [["sator-if", "Indirect Fire +1"], ["sator-rear", "Rear Weapons +1"], ["sator-darkness", DARKNESS_DEFAULT_LABEL]]) {
     const l = doc.createElement("label");
     const c = doc.createElement("input");
     c.type = "checkbox";
@@ -197,6 +200,7 @@ function buildDialog(doc) {
 
   let currentAttacker = null;
   let currentEntry = null;
+  let hasSrch = false;
 
   function readInputs() {
     const q = s => dialog.querySelector(s);
@@ -206,7 +210,7 @@ function buildDialog(doc) {
     const extra = [];
     if (q("#sator-if").checked) extra.push(1);
     if (q("#sator-rear").checked) extra.push(1);
-    if (q("#sator-darkness").checked) extra.push(1);
+    if (q("#sator-darkness").checked && !hasSrch) extra.push(1);
     extra.push(Number(q("#sator-other").value) || 0);
     const atkEntry = { ...currentEntry, movement: atkMove ? atkMove.value : "walk" };
     return {
@@ -257,6 +261,19 @@ function buildDialog(doc) {
     dialog.querySelector("#sator-tmm").value = "0";
     dialog.querySelector("#sator-other").value = "0";
     for (const c of dialog.querySelectorAll(".sator-other-chk")) c.checked = false;
+    hasSrch = (currentAttacker.abilities || []).includes("SRCH");
+    const darkness = dialog.querySelector("#sator-darkness");
+    const darknessLabel = darkness.closest("label");
+    if (hasSrch) {
+      darkness.disabled = true;
+      darkness.checked = false;
+      darknessLabel.classList.add("negated");
+      darknessLabel.lastChild.textContent = DARKNESS_NEGATED_LABEL;
+    } else {
+      darkness.disabled = false;
+      darknessLabel.classList.remove("negated");
+      darknessLabel.lastChild.textContent = DARKNESS_DEFAULT_LABEL;
+    }
     const m = dialog.querySelector('input[name="sator-atk-move"][value="walk"]');
     if (m) m.checked = true;
     const tm = dialog.querySelector('input[name="sator-target-move"][value="walk"]');

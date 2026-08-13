@@ -6,7 +6,7 @@ import {
   createGroup, addUnitToGroup, removeUnitFromGroup, setGroupName, groupNameForUnit, groupSizeForUnit,
 } from "./state.js";
 import { makeStorage } from "./storage.js";
-import { ensureSatorDialog, openSatorDialog, closeSatorDialog } from "./dialog.js";
+import { ensureSatorDialog, openSatorDialog } from "./dialog.js";
 
 const SAVE_DEBOUNCE_MS = 0;
 const MAX_IMPORT_BYTES = 5 * 1024 * 1024;
