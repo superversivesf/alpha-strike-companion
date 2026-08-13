@@ -61,6 +61,15 @@ export function setSkill(entry, value) {
   return { ...entry, skill: v, skillSet: true };
 }
 
+export const PV_SKILL_MODS = { 0: 8, 1: 6, 2: 4, 3: 2, 4: 0, 5: -2, 6: -4 };
+
+export function pvForEntry(unit, entry) {
+  const base = unit.pv;
+  if (!entry || !entry.skillSet) return base;
+  const mod = PV_SKILL_MODS[entry.skill] ?? 0;
+  return base + mod;
+}
+
 function clickTrack(current, index) {
   const next = index + 1;
   if (current === next) return current - 1;

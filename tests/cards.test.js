@@ -54,6 +54,32 @@ test("renderCard shows skill setter until set, then fixed value", () => {
   assert.equal(card2.querySelector(".skill-value").textContent, "3");
 });
 
+test("renderCard skill options show PV adjustment", () => {
+  const card = render(unit, createEntry(unit));
+  const options = [...card.querySelectorAll(".skill-select option")];
+  assert.equal(options[0].textContent, "0 (+8 PV)");
+  assert.equal(options[2].textContent, "2 (+4 PV)");
+  assert.equal(options[4].textContent, "4");
+  assert.equal(options[6].textContent, "6 (-4 PV)");
+});
+
+test("renderCard shows adjusted PV when skill is set", () => {
+  const set = { ...createEntry(unit), skill: 2, skillSet: true };
+  const card = render(unit, set);
+  assert.equal(card.querySelector(".card-pv").textContent, "PV 56");
+  const pvAdj = card.querySelector(".skill-pv");
+  assert.ok(pvAdj, "skill PV badge must render");
+  assert.equal(pvAdj.textContent, "PV +4");
+  const set6 = { ...createEntry(unit), skill: 6, skillSet: true };
+  const card6 = render(unit, set6);
+  assert.equal(card6.querySelector(".card-pv").textContent, "PV 48");
+  assert.equal(card6.querySelector(".skill-pv").textContent, "PV -4");
+  const set4 = { ...createEntry(unit), skill: 4, skillSet: true };
+  const card4 = render(unit, set4);
+  assert.equal(card4.querySelector(".card-pv").textContent, "PV 52");
+  assert.equal(card4.querySelectorAll(".skill-pv").length, 0, "no badge at skill 4");
+});
+
 test("renderCard adds tooltips to stats, tracks, heat, crits, abilities", () => {
   const card = render(unit, createEntry(unit));
   assert.ok(card.querySelector('.identity-cell b.tip[data-tip*="Size"]'));

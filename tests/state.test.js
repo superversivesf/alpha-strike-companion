@@ -5,6 +5,7 @@ import {
   setHeat, toggleCrit, setSkill, isEntryValid, critTypesForUnit, critCap, tracksHeat,
   isClanUnit, groupSizeForUnit, groupNameForUnit, createGroup,
   addUnitToGroup, removeUnitFromGroup, setGroupName, isGroupValid, isEntryDestroyed,
+  PV_SKILL_MODS, pvForEntry,
 } from "../site/js/state.js";
 
 const unit = {
@@ -46,6 +47,18 @@ test("setSkill fixes the skill once", () => {
   assert.equal(e.skill, 6);
   e = setSkill(e, -3);
   assert.equal(e.skill, 0);
+});
+
+test("pvForEntry applies skill PV adjustment", () => {
+  assert.equal(pvForEntry(unit, null), 52);
+  assert.equal(pvForEntry(unit, createEntry(unit)), 52); // skillSet false
+  const e4 = { ...createEntry(unit), skill: 4, skillSet: true };
+  assert.equal(pvForEntry(unit, e4), 52);
+  const e2 = { ...createEntry(unit), skill: 2, skillSet: true };
+  assert.equal(pvForEntry(unit, e2), 56); // base 52 + 4
+  const e6 = { ...createEntry(unit), skill: 6, skillSet: true };
+  assert.equal(pvForEntry(unit, e6), 48); // base 52 - 4
+  assert.deepEqual(PV_SKILL_MODS, { 0: 8, 1: 6, 2: 4, 3: 2, 4: 0, 5: -2, 6: -4 });
 });
 
 test("damageArmor click semantics and clamping", () => {

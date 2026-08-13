@@ -1,4 +1,4 @@
-import { createEntry, HEAT_LEVELS, critTypesForUnit, critCap, tracksHeat, isAerospaceUnit, isEntryDestroyed } from "./state.js";
+import { createEntry, HEAT_LEVELS, critTypesForUnit, critCap, tracksHeat, isAerospaceUnit, isEntryDestroyed, PV_SKILL_MODS, pvForEntry } from "./state.js";
 import { typeName } from "./search.js";
 
 const STAT_TIPS = {
@@ -161,7 +161,7 @@ function identityRow(items) {
   return row;
 }
 
-function skillSetter(entry) {
+function skillSetter(entry, unit) {
   const wrap = document.createElement("span");
   wrap.className = "skill-setter";
   if (entry.skillSet) {
@@ -169,6 +169,14 @@ function skillSetter(entry) {
     val.className = "skill-value";
     val.textContent = entry.skill;
     addTip(val, "Skill Rating — set when deployed; cannot be changed during the game");
+    const pvAdj = document.createElement("span");
+    pvAdj.className = "skill-pv";
+    const mod = PV_SKILL_MODS[entry.skill] ?? 0;
+    if (mod !== 0) {
+      pvAdj.textContent = mod > 0 ? `PV +${mod}` : `PV ${mod}`;
+      addTip(pvAdj, "PV adjustment for this pilot skill — see skill cost table");
+      wrap.append(pvAdj);
+    }
     wrap.append(val);
     return wrap;
   }
@@ -178,7 +186,9 @@ function skillSetter(entry) {
   for (let i = 0; i <= 6; i++) {
     const opt = document.createElement("option");
     opt.value = String(i);
-    opt.textContent = String(i);
+    const mod = PV_SKILL_MODS[i] ?? 0;
+    const suffix = mod > 0 ? ` (+${mod} PV)` : mod < 0 ? ` (${mod} PV)` : "";
+    opt.textContent = `${i}${suffix}`;
     if (i === entry.skill) opt.selected = true;
     select.append(opt);
   }
@@ -266,8 +276,9 @@ export function renderCard(unit, entry = createEntry(unit)) {
   variant.textContent = unit.variant;
   const pv = document.createElement("span");
   pv.className = "card-pv";
-  pv.textContent = `PV ${unit.pv}`;
-  addTip(pv, "Point Value — the unit's cost when building a force");
+  const pvValue = pvForEntry(unit, entry);
+  pv.textContent = `PV ${pvValue}`;
+  addTip(pv, "Point Value — the unit's cost when building a force" + (pvValue !== unit.pv ? ` (base ${unit.pv} + skill adjustment ${pvValue - unit.pv > 0 ? "+" : ""}${pvValue - unit.pv})` : ""));
   const toHit = document.createElement("button");
   toHit.type = "button";
   toHit.className = "card-tohit";
@@ -341,7 +352,7 @@ export function renderCard(unit, entry = createEntry(unit)) {
       { label: "Skill", value: "", tip: STAT_TIPS.Skill },
     ]),
   );
-  identity.querySelector(".identity-row:last-child .identity-cell:last-child").append(skillSetter(entry));
+  identity.querySelector(".identity-row:last-child .identity-cell:last-child").append(skillSetter(entry, unit));
 
   const damage = document.createElement("div");
   damage.className = "card-damage";

@@ -4,6 +4,7 @@ import { initTooltips } from "./tooltips.js";
 import {
   createEntry, damageArmor, damageStruct, setHeat, toggleCrit, setSkill, slugifyUnit,
   createGroup, addUnitToGroup, removeUnitFromGroup, setGroupName, groupNameForUnit, groupSizeForUnit,
+  pvForEntry,
 } from "./state.js";
 import { makeStorage } from "./storage.js";
 import { ensureSatorDialog, openSatorDialog } from "./dialog.js";
@@ -167,7 +168,7 @@ function renderRoster() {
       ungrouped.push(entry);
     }
     const unit = _unitById.get(entry.unitId);
-    if (unit) totalPv += unit.pv;
+    if (unit) totalPv += pvForEntry(unit, entry);
   }
 
   for (const group of _state.groups) {

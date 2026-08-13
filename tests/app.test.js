@@ -216,6 +216,7 @@ test("set-skill fixes the skill and persists", async () => {
   const { document, saved } = await boot();
   await showSomeUnits();
   document.querySelector("#picker-list li button").dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
+  assert.equal(document.getElementById("force-pv").textContent, "Force PV: 52");
   const select = document.querySelector('#roster .card .skill-select');
   select.value = "3";
   const setBtn = document.querySelector('#roster .card .skill-set');
@@ -224,6 +225,8 @@ test("set-skill fixes the skill and persists", async () => {
   assert.equal(document.querySelectorAll('#roster .card .skill-select').length, 0);
   assert.equal(saved.at(-1).roster[0].skill, 3);
   assert.equal(saved.at(-1).roster[0].skillSet, true);
+  assert.equal(document.getElementById("force-pv").textContent, "Force PV: 54");
+  assert.equal(document.querySelector('#roster .card .card-pv').textContent, "PV 54");
 });
 
 test("removing one duplicate unit keeps the other", async () => {
