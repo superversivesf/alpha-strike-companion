@@ -108,12 +108,17 @@ test("target stationary zeros TMM and lowers TN", () => {
   const doc = setup();
   openSatorDialog({ doc, attacker: atlas, attackerEntry: entry });
   const overlay = ensureSatorDialog(doc);
-  overlay.querySelector("#sator-tmm").value = "3";
+  const tmm3 = overlay.querySelector('input[name="sator-tmm"][value="3"]');
+  tmm3.checked = true;
+  tmm3.dispatchEvent(new doc.defaultView.Event("change", { bubbles: true }));
   const stationary = overlay.querySelector('input[name="sator-target-move"][value="stationary"]');
   stationary.checked = true;
   stationary.dispatchEvent(new doc.defaultView.Event("change", { bubbles: true }));
   const tn = Number(overlay.querySelector("#sator-tn").textContent);
   assert.equal(tn, 4); // skill 4, tmm zeroed by stationary (stationary wins over manual TMM)
+  assert.equal(tmm3.disabled, true);
+  const tmm0 = overlay.querySelector('input[name="sator-tmm"][value="0"]');
+  assert.equal(tmm0.checked, true, "stationary must reset selection to TMM 0");
 });
 
 test("SRCH attacker disables and zeroes the darkness toggle", () => {

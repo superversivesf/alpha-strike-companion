@@ -177,7 +177,7 @@ test("renderCard adds a To-Hit button with tooltip", () => {
   const card = render(unit, createEntry(unit));
   const btn = card.querySelector('.card-tohit[data-action="tohit"]');
   assert.ok(btn, "to-hit button must exist");
-  assert.equal(btn.textContent, "To-Hit");
+  assert.equal(btn.textContent, "SATOR");
   assert.ok(btn.classList.contains("tip"));
 });
 

@@ -624,9 +624,19 @@ h1, h2, h3 { font-family: var(--font-head); letter-spacing: 0.06em; }
 }
 
 .card-tohit {
-  margin-left: auto;
   font-size: 11px;
-  padding: 3px 8px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  padding: 2px 7px;
+  color: var(--tan);
+  background: rgba(194, 178, 128, 0.08);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  white-space: nowrap;
+}
+.card-tohit:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent-strong);
 }
 .card-tohit:disabled {
   opacity: 0.45;

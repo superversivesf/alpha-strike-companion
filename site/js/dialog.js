@@ -82,16 +82,21 @@ function buildDialog(doc) {
   tmmRow.className = "sator-row";
   const tmmLabel = doc.createElement("label");
   tmmLabel.textContent = "TMM";
-  tmmLabel.setAttribute("for", "sator-tmm");
-  const tmmInput = doc.createElement("input");
-  tmmInput.id = "sator-tmm";
-  tmmInput.className = "sator-number";
-  tmmInput.type = "number";
-  tmmInput.step = "1";
-  tmmInput.min = "0";
-  tmmInput.max = "6";
-  tmmInput.value = "0";
-  tmmRow.append(tmmLabel, tmmInput);
+  const tmmGroup = doc.createElement("div");
+  tmmGroup.className = "sator-radio-group";
+  for (let i = 0; i <= 5; i++) {
+    const l = doc.createElement("label");
+    const r = doc.createElement("input");
+    r.type = "radio";
+    r.name = "sator-tmm";
+    r.value = String(i);
+    if (i === 0) r.checked = true;
+    const s = doc.createElement("span");
+    s.textContent = String(i);
+    l.append(r, s);
+    tmmGroup.append(l);
+  }
+  tmmRow.append(tmmLabel, tmmGroup);
   const tgtMove = doc.createElement("div");
   tgtMove.className = "sator-row";
   const tgtMoveLabel = doc.createElement("label");
@@ -222,7 +227,7 @@ function buildDialog(doc) {
       rangeBand: rangeBand ? rangeBand.value : "S",
       terrain: q("#sator-terrain").value,
       otherModifiers: extra,
-      targetTmmOverride: q("#sator-tmm").value,
+      targetTmmOverride: q('input[name="sator-tmm"]:checked')?.value ?? "0",
     };
   }
 
@@ -258,7 +263,8 @@ function buildDialog(doc) {
     dialog.querySelector(".sator-crew-badge").textContent = crew ? `Crew +${crew * 2}` : "";
     dialog.querySelector(".sator-unit-name").textContent =
       `${currentAttacker.class} ${currentAttacker.variant}`;
-    dialog.querySelector("#sator-tmm").value = "0";
+    const tmm0 = dialog.querySelector('input[name="sator-tmm"][value="0"]');
+    if (tmm0) tmm0.checked = true;
     dialog.querySelector("#sator-other").value = "0";
     for (const c of dialog.querySelectorAll(".sator-other-chk")) c.checked = false;
     hasSrch = (currentAttacker.abilities || []).includes("SRCH");
@@ -281,7 +287,7 @@ function buildDialog(doc) {
     const r = dialog.querySelector('input[name="sator-range"][value="S"]');
     if (r) r.checked = true;
     dialog.querySelector("#sator-terrain").value = "none";
-    dialog.querySelector("#sator-tmm").disabled = false;
+    for (const r of dialog.querySelectorAll('input[name="sator-tmm"]')) r.disabled = false;
     recompute();
     overlay.hidden = false;
     const first = dialog.querySelector("input, select, button:not(.sator-close)");
@@ -314,8 +320,11 @@ function buildDialog(doc) {
   tgtMoveGroupEl.addEventListener("change", e => {
     if (e.target.name === "sator-target-move") {
       const stationary = e.target.value === "stationary";
-      tmmInput.disabled = stationary;
-      if (stationary) tmmInput.value = "0";
+      for (const r of dialog.querySelectorAll('input[name="sator-tmm"]')) r.disabled = stationary;
+      if (stationary) {
+        const tmm0 = dialog.querySelector('input[name="sator-tmm"][value="0"]');
+        if (tmm0) tmm0.checked = true;
+      }
     }
   });
   return overlay;

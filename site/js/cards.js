@@ -264,25 +264,25 @@ export function renderCard(unit, entry = createEntry(unit)) {
   pv.className = "card-pv";
   pv.textContent = `PV ${unit.pv}`;
   addTip(pv, "Point Value — the unit's cost when building a force");
+  const toHit = document.createElement("button");
+  toHit.type = "button";
+  toHit.className = "card-tohit";
+  toHit.dataset.action = "tohit";
+  toHit.setAttribute("aria-label", "Open the SATOR to-hit calculator");
+  toHit.textContent = "SATOR";
+  addTip(toHit, "SATOR to-hit calculator — Skill, Attacker, Target, Other, Roll. Opens with this unit as the attacker");
+  if (isEntryDestroyed(entry, unit) || entry.heat === "S") {
+    toHit.disabled = true;
+    toHit.setAttribute("aria-disabled", "true");
+    addTip(toHit, "Unit destroyed or shut down — cannot attack");
+  }
   const remove = document.createElement("button");
   remove.type = "button";
   remove.className = "card-remove";
   remove.dataset.action = "remove";
   remove.setAttribute("aria-label", "Remove unit");
   remove.textContent = "\u2715";
-  const toHit = document.createElement("button");
-  toHit.type = "button";
-  toHit.className = "card-tohit";
-  toHit.dataset.action = "tohit";
-  toHit.setAttribute("aria-label", "Open to-hit calculator");
-  toHit.textContent = "To-Hit";
-  addTip(toHit, "Open the to-hit calculator with this unit as the attacker");
-  if (isEntryDestroyed(entry, unit) || entry.heat === "S") {
-    toHit.disabled = true;
-    toHit.setAttribute("aria-disabled", "true");
-    addTip(toHit, "Unit destroyed or shut down — cannot attack");
-  }
-  head.append(title, variant, pv, toHit, remove);
+  head.append(title, variant, toHit, pv, remove);
 
   const body = document.createElement("div");
   body.className = "card-body";
