@@ -411,11 +411,6 @@ h1, h2, h3 { font-family: var(--font-head); letter-spacing: 0.06em; }
   font-weight: 700;
   color: var(--tan);
 }
-.skill-pv {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--damaged);
-}
 
 .card-damage {
   border: 1px solid var(--border);

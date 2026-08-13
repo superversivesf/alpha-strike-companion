@@ -169,14 +169,6 @@ function skillSetter(entry, unit) {
     val.className = "skill-value";
     val.textContent = entry.skill;
     addTip(val, "Skill Rating — set when deployed; cannot be changed during the game");
-    const pvAdj = document.createElement("span");
-    pvAdj.className = "skill-pv";
-    const mod = PV_SKILL_MODS[entry.skill] ?? 0;
-    if (mod !== 0) {
-      pvAdj.textContent = mod > 0 ? `PV +${mod}` : `PV ${mod}`;
-      addTip(pvAdj, "PV adjustment for this pilot skill — see skill cost table");
-      wrap.append(pvAdj);
-    }
     wrap.append(val);
     return wrap;
   }
