@@ -286,7 +286,7 @@ export function renderCard(unit, entry = createEntry(unit)) {
   remove.dataset.action = "remove";
   remove.setAttribute("aria-label", "Remove unit");
   remove.textContent = "\u2715";
-  head.append(title, variant, toHit, pv, remove);
+  head.append(title, variant, pv, toHit, remove);
 
   const body = document.createElement("div");
   body.className = "card-body";

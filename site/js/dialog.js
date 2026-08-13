@@ -84,7 +84,7 @@ function buildDialog(doc) {
   tgtMoveLabel.textContent = "Movement";
   const tgtMoveGroup = doc.createElement("div");
   tgtMoveGroup.className = "sator-radio-group";
-  for (const [value, label] of [["stationary", "Stationary"], ["moved", "Moved"], ["jump", "Jump"], ["immobile", "Immobile"]]) {
+  for (const [value, label] of [["immobile", "Immobile"], ["stationary", "Stationary"], ["moved", "Moved"], ["jump", "Jump"]]) {
     const l = doc.createElement("label");
     const r = doc.createElement("input");
     r.type = "radio";
