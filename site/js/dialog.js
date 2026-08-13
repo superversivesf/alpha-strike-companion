@@ -34,6 +34,11 @@ function buildDialog(doc) {
   const body = doc.createElement("div");
   body.className = "sator-body";
 
+  let tnEl = null;
+  let breakdownEl = null;
+  let probEl = null;
+  let noteEl = null;
+
   const sections = [];
   for (const [letter, name] of SATOR_SECTIONS) {
     const row = doc.createElement("div");
@@ -69,28 +74,27 @@ function buildDialog(doc) {
       }
       content.append(atkMove);
     }
+    if (letter === "R") {
+      tnEl = doc.createElement("div");
+      tnEl.id = "sator-tn";
+      tnEl.className = "sator-tn";
+      breakdownEl = doc.createElement("div");
+      breakdownEl.id = "sator-breakdown";
+      breakdownEl.className = "sator-breakdown";
+      probEl = doc.createElement("div");
+      probEl.id = "sator-prob";
+      probEl.className = "sator-prob";
+      noteEl = doc.createElement("div");
+      noteEl.id = "sator-note";
+      noteEl.className = "sator-note";
+      content.append(tnEl, breakdownEl, probEl, noteEl);
+    }
     row.append(letterBox, content);
     body.append(row);
     sections.push(row);
   }
 
-  const result = doc.createElement("div");
-  result.className = "sator-result";
-  const tnEl = doc.createElement("div");
-  tnEl.id = "sator-tn";
-  tnEl.className = "sator-tn";
-  const breakdownEl = doc.createElement("div");
-  breakdownEl.id = "sator-breakdown";
-  breakdownEl.className = "sator-breakdown";
-  const probEl = doc.createElement("div");
-  probEl.id = "sator-prob";
-  probEl.className = "sator-prob";
-  const noteEl = doc.createElement("div");
-  noteEl.id = "sator-note";
-  noteEl.className = "sator-note";
-  result.append(tnEl, breakdownEl, probEl, noteEl);
-
-  dialog.append(head, body, result);
+  dialog.append(head, body);
   overlay.append(dialog);
 
   let currentAttacker = null;
