@@ -1,11 +1,11 @@
 import { hitProbability, attackerMoveMod } from "./sator.js";
 
 const SATOR_SECTIONS = [
-  ["S", "Skill"],
-  ["A", "Attacker"],
-  ["T", "Target"],
-  ["O", "Other"],
-  ["R", "Roll"],
+  ["S", "Skill", "Skill — the pilot's skill rating (0–6). Lower is better; changes the unit's Point Value."],
+  ["A", "Attacker", "Attacker — modifiers from the attacking unit's own situation, such as its movement."],
+  ["T", "Target", "Target — the target's movement modifier (TMM), terrain, and other target factors."],
+  ["O", "Other", "Other — additional situational modifiers such as indirect fire, darkness, or special abilities."],
+  ["R", "Roll", "Roll — the final target number: roll 2d6 equal to or above it to hit."],
 ];
 
 function buildDialog(doc) {
@@ -40,18 +40,15 @@ function buildDialog(doc) {
   let noteEl = null;
 
   const sections = [];
-  for (const [letter, name] of SATOR_SECTIONS) {
+  for (const [letter, name, desc] of SATOR_SECTIONS) {
     const row = doc.createElement("div");
     row.className = "sator-section-row";
     const letterBox = doc.createElement("div");
-    letterBox.className = "sator-letter";
+    letterBox.className = "sator-letter tip";
     letterBox.textContent = letter;
+    letterBox.setAttribute("data-tip", desc);
     const content = doc.createElement("div");
     content.className = "sator-content";
-    const sectionTitle = doc.createElement("div");
-    sectionTitle.className = "sator-section-title";
-    sectionTitle.textContent = name;
-    content.append(sectionTitle);
     if (letter === "S") {
       const skillValue = doc.createElement("div");
       skillValue.className = "sator-skill-value";

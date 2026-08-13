@@ -729,12 +729,6 @@ h1, h2, h3 { font-family: var(--font-head); letter-spacing: 0.06em; }
   gap: 4px;
   min-width: 0;
 }
-.sator-section-title {
-  font-size: 11px;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  color: var(--muted);
-}
 .sator-radio-group {
   display: flex;
   gap: 4px;

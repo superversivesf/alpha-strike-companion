@@ -35,8 +35,18 @@ test("dialog shows five SATOR letter boxes in order", () => {
   ensureSatorDialog(doc);
   const letters = [...doc.querySelectorAll(".sator-letter")].map(l => l.textContent);
   assert.deepEqual(letters, ["S", "A", "T", "O", "R"]);
-  const titles = [...doc.querySelectorAll(".sator-section-title")].map(t => t.textContent);
-  assert.deepEqual(titles, ["Skill", "Attacker", "Target", "Other", "Roll"]);
+});
+
+test("letter boxes carry descriptive tooltips", () => {
+  const doc = setup();
+  ensureSatorDialog(doc);
+  const tips = [...doc.querySelectorAll(".sator-letter")].map(l => l.dataset.tip);
+  assert.equal(tips.length, 5);
+  assert.match(tips[0], /^Skill —/);
+  assert.match(tips[1], /^Attacker —/);
+  assert.match(tips[2], /^Target —/);
+  assert.match(tips[3], /^Other —/);
+  assert.match(tips[4], /^Roll —/);
 });
 
 test("openSatorDialog unhides and prefills attacker skill", () => {
