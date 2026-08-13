@@ -1,4 +1,4 @@
-import { createEntry, HEAT_LEVELS, critTypesForUnit, critCap, tracksHeat, isAerospaceUnit } from "./state.js";
+import { createEntry, HEAT_LEVELS, critTypesForUnit, critCap, tracksHeat, isAerospaceUnit, isEntryDestroyed } from "./state.js";
 import { typeName } from "./search.js";
 
 const STAT_TIPS = {
@@ -270,7 +270,19 @@ export function renderCard(unit, entry = createEntry(unit)) {
   remove.dataset.action = "remove";
   remove.setAttribute("aria-label", "Remove unit");
   remove.textContent = "\u2715";
-  head.append(title, variant, pv, remove);
+  const toHit = document.createElement("button");
+  toHit.type = "button";
+  toHit.className = "card-tohit";
+  toHit.dataset.action = "tohit";
+  toHit.setAttribute("aria-label", "Open to-hit calculator");
+  toHit.textContent = "To-Hit";
+  addTip(toHit, "Open the to-hit calculator with this unit as the attacker");
+  if (isEntryDestroyed(entry, unit) || entry.heat === "S") {
+    toHit.disabled = true;
+    toHit.setAttribute("aria-disabled", "true");
+    addTip(toHit, "Unit destroyed or shut down — cannot attack");
+  }
+  head.append(title, variant, pv, toHit, remove);
 
   const body = document.createElement("div");
   body.className = "card-body";
@@ -419,7 +431,7 @@ export function renderCard(unit, entry = createEntry(unit)) {
 
   body.append(details, side);
 
-  const destroyed = entry.armorDamage >= unit.armor && entry.structDamage >= unit.structure;
+  const destroyed = isEntryDestroyed(entry, unit);
   if (destroyed) {
     const stamp = document.createElement("div");
     stamp.className = "destroyed-stamp";
