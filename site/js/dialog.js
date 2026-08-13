@@ -114,8 +114,8 @@ function buildDialog(doc) {
       jetsInput.className = "sator-number";
       jetsInput.type = "number";
       jetsInput.step = "1";
-      jetsInput.min = "-6";
-      jetsInput.max = "6";
+      jetsInput.min = "-3";
+      jetsInput.max = "2";
       jetsInput.value = "0";
       jetsRow.append(jetsLabel, jetsInput);
       content.append(tgtMode, tmmGroup, jetsRow);
