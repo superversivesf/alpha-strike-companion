@@ -32,6 +32,10 @@ function click(el, win) {
   el.dispatchEvent(new win.MouseEvent("click", { bubbles: true }));
 }
 
+async function settle() {
+  await new Promise(r => setTimeout(r, 200));
+}
+
 test("JOURNEY: full game night — deploy, damage, heat, crits, refresh, export/import", async () => {
   const { window, document, storage } = await boot();
   const ls = window.localStorage;
@@ -120,6 +124,10 @@ test("JOURNEY: units auto-group into Lances (IS) and Stars (Clan)", async () => 
   await app.init({ doc: window.document, storage });
 
   // Deploy 2 Clan mechs -> one Star (size 5)
+  const search0 = document.getElementById("search");
+  search0.value = "a";
+  search0.dispatchEvent(new window.Event("input", { bubbles: true }));
+  await settle();
   click(document.querySelector("#picker-list li button"), window);
   click(document.querySelector("#picker-list li button"), window);
   let groups = document.querySelectorAll("#roster .group");
@@ -168,6 +176,10 @@ test("JOURNEY: group names are fixed at creation and stable", async () => {
   await app.init({ doc: window.document, storage });
 
   // Fill Star 1 (5 Clan mechs: add 5 clones)
+  const search0 = document.getElementById("search");
+  search0.value = "a";
+  search0.dispatchEvent(new window.Event("input", { bubbles: true }));
+  await settle();
   for (let i = 0; i < 5; i++) {
     click(document.querySelector("#picker-list li button"), window);
   }
@@ -224,8 +236,11 @@ test("JOURNEY: search and type-filter interaction", async () => {
   assert.equal(items.length, 1);
   assert.match(items[0].textContent, /AS7-D/);
 
-  // Reset both — everything back
+  // Reset both — back to the idle hint
   search.value = "";
   search.dispatchEvent(new window.Event("input", { bubbles: true }));
-  assert.equal(document.querySelectorAll("#picker-list li").length, 3);
+  await settle();
+  const idle = document.querySelectorAll("#picker-list li");
+  assert.equal(idle.length, 1);
+  assert.match(idle[0].className, /picker-hint/);
 });

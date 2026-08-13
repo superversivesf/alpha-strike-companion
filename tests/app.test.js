@@ -37,6 +37,17 @@ async function boot({ state = { roster: [] } } = {}) {
   return { window, document: window.document, saved, app };
 }
 
+async function settle() {
+  await new Promise(r => setTimeout(r, 200));
+}
+
+async function showSomeUnits() {
+  const s = document.getElementById("search");
+  s.value = "a";
+  s.dispatchEvent(new window.Event("input", { bubbles: true }));
+  await settle();
+}
+
 test("init loads units, populates filters and picker", async () => {
   const { document } = await boot();
   const typeOptions = [...document.querySelectorAll("#type-filter option")].map(o => o.value);
@@ -54,9 +65,9 @@ test("init loads units, populates filters and picker", async () => {
   const sizeOptions = [...document.querySelectorAll("#size-filter option")].map(o => o.value);
   assert.deepEqual(sizeOptions, ["", "1", "2", "3", "4"]);
   const items = document.querySelectorAll("#picker-list li");
-  assert.equal(items.length, 3);
-  assert.match(items[0].textContent, /ATLAS/);
-  assert.match(items[0].textContent, /BattleMech/);
+  assert.equal(items.length, 1);
+  assert.match(items[0].className, /picker-hint/);
+  assert.match(items[0].textContent, /Start typing or select a filter/);
 });
 
 test("picker filters narrow the unit list", async () => {
@@ -119,8 +130,32 @@ test("search narrows picker; type filter excludes UNK", async () => {
   assert.equal(items.length, 2);
 });
 
+test("no-match state shows a distinct message", async () => {
+  const { document } = await boot();
+  const input = document.getElementById("search");
+  input.value = "zzz-no-such-unit";
+  input.dispatchEvent(new window.Event("input", { bubbles: true }));
+  await settle();
+  const items = document.querySelectorAll("#picker-list li");
+  assert.equal(items.length, 1);
+  assert.match(items[0].className, /picker-empty/);
+  assert.match(items[0].textContent, /No units found/);
+});
+
+test("whitespace-only search shows the hint", async () => {
+  const { document } = await boot();
+  const input = document.getElementById("search");
+  input.value = "   ";
+  input.dispatchEvent(new window.Event("input", { bubbles: true }));
+  await settle();
+  const items = document.querySelectorAll("#picker-list li");
+  assert.equal(items.length, 1);
+  assert.match(items[0].className, /picker-hint/);
+});
+
 test("adding units renders cards and updates force PV", async () => {
   const { document, saved } = await boot();
+  await showSomeUnits();
   const first = document.querySelector("#picker-list li button");
   first.dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
   first.dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
@@ -134,6 +169,7 @@ test("adding units renders cards and updates force PV", async () => {
 
 test("roster click delegation applies armor damage and saves", async () => {
   const { document, saved } = await boot();
+  await showSomeUnits();
   document.querySelector("#picker-list li button").dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
   const pip = document.querySelector('#roster .card .pip[data-action="armor"][data-index="2"]');
   pip.dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
@@ -144,6 +180,7 @@ test("roster click delegation applies armor damage and saves", async () => {
 
 test("heat, crit, and remove actions", async () => {
   const { document } = await boot();
+  await showSomeUnits();
   document.querySelector("#picker-list li button").dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
   const heatBtn = document.querySelector('#roster .heat-btn[data-heat="2"]');
   heatBtn.dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
@@ -158,6 +195,7 @@ test("heat, crit, and remove actions", async () => {
 
 test("set-skill fixes the skill and persists", async () => {
   const { document, saved } = await boot();
+  await showSomeUnits();
   document.querySelector("#picker-list li button").dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
   const select = document.querySelector('#roster .card .skill-select');
   select.value = "3";
@@ -171,6 +209,7 @@ test("set-skill fixes the skill and persists", async () => {
 
 test("removing one duplicate unit keeps the other", async () => {
   const { document } = await boot();
+  await showSomeUnits();
   const first = document.querySelector("#picker-list li button");
   first.dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
   first.dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
@@ -183,6 +222,7 @@ test("removing one duplicate unit keeps the other", async () => {
 
 test("removing the last unit deletes its group", async () => {
   const { document } = await boot();
+  await showSomeUnits();
   const first = document.querySelector("#picker-list li button");
   first.dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
   assert.equal(document.querySelectorAll("#roster .group").length, 1);
@@ -201,6 +241,7 @@ test("picker toggle collapses the list", async () => {
 
 test("clear force empties roster and saves", async () => {
   const { document, saved } = await boot();
+  await showSomeUnits();
   document.querySelector("#picker-list li button").dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
   document.getElementById("btn-clear").dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
   assert.equal(document.querySelectorAll("#roster .card").length, 0);
