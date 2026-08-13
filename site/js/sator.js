@@ -73,8 +73,14 @@ export function attackerToHit({
   const add = (label, value) => { if (value !== 0) breakdown.push({ label, value }); };
   add("Skill", attackerEntry.skill);
   add("Move", movementModifier(attackerEntry.movement || "walk"));
-  const tmm = effectiveTargetTmm(target, targetEntry, targetMovement, targetTmmOverride);
-  add("TMM", tmm);
+  const baseTmm = effectiveTargetTmm(target, targetEntry, targetMovement, targetTmmOverride);
+  add("TMM", baseTmm);
+  if (targetMovement === "moved" || targetMovement === "jump") {
+    const overrideTmm = targetTmmOverride !== null && targetTmmOverride !== undefined && targetTmmOverride !== "" && Number(targetTmmOverride) !== 0;
+    const rawTmm = overrideTmm ? Number(targetTmmOverride) : target.tmm;
+    const critDelta = baseTmm - rawTmm;
+    if (critDelta < 0) add("O (crits)", critDelta);
+  }
   add("Terrain", terrainModifier(terrain));
   add("Range", rangeModifier(rangeBand));
   add("Fire Control", (attackerEntry.crits?.fireControl ?? 0) * 2);

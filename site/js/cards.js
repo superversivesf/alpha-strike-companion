@@ -151,6 +151,10 @@ function identityRow(items) {
     const val = document.createElement("span");
     val.textContent = item.value;
     if (item.tipValue) addTip(val, item.tipValue);
+    if (item.effected) {
+      val.classList.add("effected");
+      cell.classList.add("effected");
+    }
     cell.append(lab, val);
     row.append(cell);
   }
@@ -292,12 +296,45 @@ export function renderCard(unit, entry = createEntry(unit)) {
 
   const identity = document.createElement("div");
   identity.className = "card-identity";
+
+  let tmm = unit.tmm;
+  const tmmTips = [];
+  if (entry.crits.mp > 0) {
+    tmm = Math.floor(tmm / 2);
+    tmmTips.push("MP crit: TMM halved");
+  }
+  if (entry.crits.engine > 0 && unit.type !== "BM") {
+    tmm = Math.floor(tmm / 2);
+    tmmTips.push("Engine crit: TMM halved");
+  }
+  if (entry.heat === "S") {
+    tmm = Math.max(0, tmm - 4);
+    tmmTips.push("Shutdown: TMM \u22124");
+  }
+
+  let mv = unit.move;
+  const mvTips = [];
+  if (entry.crits.mp > 0) {
+    mv = Math.floor(mv / 2);
+    mvTips.push("MP crit: Move halved");
+  }
+  if (entry.crits.engine > 0 && unit.type !== "BM") {
+    mv = Math.floor(mv / 2);
+    mvTips.push("Engine crit: Move halved");
+  }
+
   identity.append(
     identityRow([
       { label: "TP", value: unit.type, tip: "Type — unit classification", tipValue: typeName(unit.type) },
       { label: "SZ", value: unit.size, tip: STAT_TIPS.SZ },
-      { label: "TMM", value: unit.tmm, tip: STAT_TIPS.TMM },
-      { label: "MV", value: `${unit.move}"`, tip: STAT_TIPS.MV },
+      {
+        label: "TMM", value: tmm, tip: STAT_TIPS.TMM,
+        effected: tmmTips.length > 0, tipValue: tmmTips.join("; ") || undefined,
+      },
+      {
+        label: "MV", value: `${mv}"`, tip: STAT_TIPS.MV,
+        effected: mvTips.length > 0, tipValue: mvTips.join("; ") || undefined,
+      },
     ]),
     identityRow([
       { label: "Role", value: unit.role, tip: STAT_TIPS.Role },

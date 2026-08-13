@@ -195,3 +195,29 @@ test("renderCard disables To-Hit for shutdown units", () => {
   const btn = card.querySelector(".card-tohit");
   assert.equal(btn.disabled, true);
 });
+
+test("renderCard shows MP crit effects on TMM and MV in red", () => {
+  const entry = { ...createEntry(unit), crits: { ...createEntry(unit).crits, mp: 1 } };
+  const card = render(unit, entry);
+  const cells = [...card.querySelectorAll(".identity-cell")];
+  const tmmCell = cells.find(c => c.querySelector("b").textContent === "TMM");
+  const mvCell = cells.find(c => c.querySelector("b").textContent === "MV");
+  assert.ok(tmmCell.classList.contains("effected"));
+  assert.ok(mvCell.classList.contains("effected"));
+  assert.equal(tmmCell.querySelector("span").textContent, "0"); // unit tmm 1 halved floor 0
+  assert.equal(mvCell.querySelector("span").textContent, '3"'); // unit move 6 halved
+});
+
+test("renderCard shows engine crit effects on vehicles only", () => {
+  const vee = { ...unit, type: "CV" };
+  const entry = { ...createEntry(vee), crits: { ...createEntry(vee).crits, engine: 1 } };
+  const card = render(vee, entry);
+  const cells = [...card.querySelectorAll(".identity-cell")];
+  const tmmCell = cells.find(c => c.querySelector("b").textContent === "TMM");
+  assert.ok(tmmCell.classList.contains("effected"));
+  const mechEntry = { ...createEntry(unit), crits: { ...createEntry(unit).crits, engine: 1 } };
+  const mechCard = render(unit, mechEntry);
+  const mechCells = [...mechCard.querySelectorAll(".identity-cell")];
+  const mechTmm = mechCells.find(c => c.querySelector("b").textContent === "TMM");
+  assert.ok(!mechTmm.classList.contains("effected"), "BM engine crit must not alter TMM");
+});

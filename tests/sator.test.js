@@ -127,6 +127,44 @@ test("attackerToHit: fire control crit adds +2 each", () => {
   assert.equal(r.tn, 9); // 4 + 0 + 1 + 0 + 4
 });
 
+test("attackerToHit: target MP crit shows in O breakdown and lowers TN", () => {
+  const targetEntry = { ...entry, crits: { ...CRITS0, mp: 1 } };
+  const target = { ...atlas, tmm: 3 };
+  const r = attackerToHit({
+    attacker: atlas, attackerEntry: entry,
+    target, targetEntry,
+    targetMovement: "moved", rangeBand: "S", terrain: "none", otherModifiers: [],
+  });
+  assert.equal(r.tn, 3); // skill 4 + tmm 1 (3 halved) + O(crits) -2
+  const oLine = r.breakdown.find(b => b.label === "O (crits)");
+  assert.ok(oLine, "crit delta must appear in breakdown");
+  assert.equal(oLine.value, -2);
+});
+
+test("attackerToHit: target shutdown shows O breakdown line", () => {
+  const targetEntry = { ...entry, heat: "S" };
+  const target = { ...atlas, tmm: 3 };
+  const r = attackerToHit({
+    attacker: atlas, attackerEntry: entry,
+    target, targetEntry,
+    targetMovement: "moved", rangeBand: "S", terrain: "none", otherModifiers: [],
+  });
+  const oLine = r.breakdown.find(b => b.label === "O (crits)");
+  assert.ok(oLine, "shutdown delta must appear in breakdown");
+  assert.equal(oLine.value, -3);
+  assert.equal(r.tn, 2); // 4 + 0 - 3 = 1, clamped to min TN 2
+});
+
+test("attackerToHit: stationary target emits no crit-delta line", () => {
+  const r = attackerToHit({
+    attacker: atlas, attackerEntry: entry,
+    target: atlas, targetEntry: { ...entry, crits: { ...CRITS0, mp: 1 } },
+    targetMovement: "stationary", rangeBand: "S", terrain: "none", otherModifiers: [],
+  });
+  assert.equal(r.tn, 4); // skill 4, stationary TMM 0
+  assert.ok(!r.breakdown.find(b => b.label === "O (crits)"), "stationary must not emit O line");
+});
+
 test("attackerToHit: min TN clamps at 2", () => {
   const r = attackerToHit({
     attacker: atlas, attackerEntry: { ...entry, skill: 0 },

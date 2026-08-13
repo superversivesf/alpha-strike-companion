@@ -378,6 +378,13 @@ h1, h2, h3 { font-family: var(--font-head); letter-spacing: 0.06em; }
 }
 .identity-cell b::after { content: ":"; }
 .identity-cell span { color: var(--text); font-weight: 400; }
+.identity-cell.effected span {
+  color: var(--damaged);
+  font-weight: 700;
+}
+.identity-cell.effected b {
+  color: var(--damaged);
+}
 
 .skill-setter { display: inline-flex; align-items: center; gap: 4px; }
 .skill-select {
@@ -624,15 +631,17 @@ h1, h2, h3 { font-family: var(--font-head); letter-spacing: 0.06em; }
 }
 
 .card-tohit {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.5px;
-  padding: 2px 7px;
+  padding: 4px 10px;
   color: var(--tan);
   background: rgba(194, 178, 128, 0.08);
   border: 1px solid var(--border);
   border-radius: 3px;
   white-space: nowrap;
+  align-self: center;
+  line-height: 1;
 }
 .card-tohit:hover:not(:disabled) {
   border-color: var(--accent);
