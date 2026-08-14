@@ -271,25 +271,13 @@ export function renderCard(unit, entry = createEntry(unit)) {
   const pvValue = pvForEntry(unit, entry);
   pv.textContent = `PV ${pvValue}`;
   addTip(pv, "Point Value — the unit's cost when building a force" + (pvValue !== unit.pv ? ` (base ${unit.pv} + skill adjustment ${pvValue - unit.pv > 0 ? "+" : ""}${pvValue - unit.pv})` : ""));
-  const toHit = document.createElement("button");
-  toHit.type = "button";
-  toHit.className = "card-tohit";
-  toHit.dataset.action = "tohit";
-  toHit.setAttribute("aria-label", "Open the SATOR to-hit calculator");
-  toHit.textContent = "SATOR";
-  addTip(toHit, "SATOR to-hit calculator — Skill, Attacker, Target, Other, Roll. Opens with this unit as the attacker");
-  if (isEntryDestroyed(entry, unit) || entry.heat === "S") {
-    toHit.disabled = true;
-    toHit.setAttribute("aria-disabled", "true");
-    addTip(toHit, "Unit destroyed or shut down — cannot attack");
-  }
   const remove = document.createElement("button");
   remove.type = "button";
   remove.className = "card-remove";
   remove.dataset.action = "remove";
   remove.setAttribute("aria-label", "Remove unit");
   remove.textContent = "\u2715";
-  head.append(title, variant, toHit, pv, remove);
+  head.append(title, variant, pv, remove);
 
   const body = document.createElement("div");
   body.className = "card-body";

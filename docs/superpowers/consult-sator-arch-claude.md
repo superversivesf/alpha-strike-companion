@@ -1,399 +1,348 @@
-# SATOR To-Hit Calculator — Architecture & Integration Consult
+# SATOR To-Hit — Step-Based Flow: Architecture & Feasibility
 
 **Author:** Claude (consult, 2026-08-13)
-**Scope:** Architecture and integration only. Pure math, formulas, and UX copy are out of scope and will be handled by a separate math/UX consult. This report designs how the calculator *fits the codebase* so the implementation work can proceed in parallel.
+**Focus:** Architecture, code structure, state model, a11y, test strategy. UX copy/math are out of scope.
+**Audience:** Implementer about to rewrite the SATOR dialog from a single-page modal into a wizard.
 
 ---
 
-## 1. Current codebase shape (facts the design rests on)
+## 0. TL;DR
 
-- **Stack:** vanilla JS, ES modules, no framework, no build step. `package.json` has `type: "module"`. Tests run with `node --test tests/*.test.js` + `c8` + `jsdom` (`package.json:6-12`).
-- **Module layout** under `site/js/`:
-  - `app.js` — orchestrator. `init({ doc, storage })`, calls `initTooltips(doc)`, fetches `data/units.json`, populates filters, wires delegation on `#roster`, `#picker-list`, `#search`, etc. (`app.js:159-313`)
-  - `cards.js` — pure render functions (`renderCard`, `abilityTip`, `renderCard` is a DOM builder, ~430L, exports `renderCard` + `abilityTip`).
-  - `state.js` — pure data mutators (`createEntry`, `setSkill`, `damageArmor`, `damageStruct`, `setHeat`, `toggleCrit`, group helpers, `critCap`, `tracksHeat`, `isAerospaceUnit`, `isClanUnit`). All return new objects; no DOM, no storage.
-  - `storage.js` — pure-ish, wraps `localStorage`. `loadStateSafe`, `sanitizeState`, `validateState`, `exportBlob`, `importState`.
-  - `search.js` — pure (`filterUnits`, `uniqueTypes`, `uniqueValues`, `typeName`).
-  - `tooltips.js` — DOM-bound. Uses an `__asTooltips` idempotency flag on `doc`. Creates one floating `<div class="tooltip-float">` and listens on `document` for `mouseover`/`mouseout`/`mousemove`/`touchstart`/`scroll` (`tooltips.js:1-72`).
-- **DOM convention:**
-  - The "skeleton" (`<header>`, `<section id="picker">`, `<main id="roster">`) lives in `index.html`.
-  - Anything that appears after a click or hover (e.g. the tooltip `<div>`) is **injected by JS into `document.body`**. There is no static `<div class="tooltip-float">` in `index.html` (confirmed — `index.html` has none).
-  - The picker hint and no-match `<li>` are also injected by `renderPicker` (`app.js:99-126`).
-- **Event delegation pattern:** Single `click` listener on `#roster` reads `e.target.dataset.action`, `data-action` strings drive the dispatch (`app.js:228-273`). Card chrome sets `data-unit-id` / `data-entry-id` on the `<article class="card">` and `data-action` on each interactive child (`cards.js:251-272`).
-- **Testing pattern:** `tests/*.test.js` each create a `JSDOM`, set `globalThis.document = dom.window.document`, then call the pure function directly. For integration tests, `tests/app.test.js:18-39` defines a `boot()` that loads `site/index.html` into JSDOM, stubs `fetch`, sets `window.__AS_MANUAL__ = true`, then `await import("../site/js/app.js")` and calls `app.init({ doc, storage })` with a hand-rolled storage shim.
-- **No modal/dialog/backdrop CSS exists yet** (confirmed by grep of `styles.css`).
-
-This shape — pure logic module + DOM module + thin wiring in `app.js` — is the pattern every new feature follows. The calculator should follow it too.
+- **Rewrite `dialog.js`. Do not bolt steps onto it.** A wizard wants a different lifecycle (step index, conditional reveals, single visible step), and the current 480-line `buildDialog` mixes construction, state, recompute, focus, and a11y in one closure.
+- **Add a new module `site/js/sator-wizard.js`** that owns the wizard API (`ensure`, `open`, `close`, plus `next`/`back`/`goto` for tests). Keep `dialog.js` as a thin compatibility shim that re-exports those functions, so `app.js` doesn't change and the existing test surface keeps its imports.
+- **Keep `site/js/sator.js` untouched.** Every pure function it exports (`hitProbability`, `attackerMoveMod`, `targetMoveMod`, `targetUsesTmm`, `effectiveTargetTmm`, etc.) is reused as-is. The wizard's recompute calls them through a single thin aggregator.
+- **Add `tests/sator-wizard.test.js`.** Keep the existing `tests/dialog.test.js` passing by having it test through the shim, but plan to migrate its assertions to the new module so the old test can shrink to a small smoke test.
+- **One-page summary of the current code's worst smells** that the rewrite should fix: (1) recompute is a closure that queries the DOM by `name=`; (2) `__open`, `__escHandler`, `__returnFocus` are stashed on the overlay as ad-hoc instance state; (3) Esc handler is added on `open` but only removed on `close` — if `open` is called twice without close, you stack handlers; (4) `closeNow` is unreachable from the exported `closeSatorDialog`, which has its own duplicate close body; (5) the `O` ("Other") section in the spec doesn't exist in code yet; (6) focus on open targets the first focusable in the dialog, not the first field relevant to user input.
 
 ---
 
-## 2. Module split: pure logic vs DOM dialog
+## 1. Current state — what we're replacing
 
-### Recommendation: two new files
+### 1.1 Surface area
+
+- **DOM module:** `site/js/dialog.js` (single `buildDialog(doc)` closure, ~200 lines). Exports: `ensureSatorDialog`, `openSatorDialog`, `closeSatorDialog`.
+- **Styles:** `site/styles.css:661-820` — `.sator-overlay`, `.sator-dialog`, `.sator-head`, `.sator-body`, `.sator-section-row`, `.sator-letter`, `.sator-content`, `.sator-radio-group`, `.sator-tmm-group`, `.sator-select`, `.sator-number`, `.sator-jets`, `.sator-stepper`, `.sator-stepper-btn`, `.sator-skill-value`.
+- **Pure math:** `site/js/sator.js` (untouched by this rewrite).
+- **Tests:** `tests/dialog.test.js` (16 tests, 200 lines), `tests/sator.test.js` (untouched).
+- **Caller:** `site/js/app.js:10` imports `ensureSatorDialog, openSatorDialog`. `app.js:343` calls `openSatorDialog({ doc, attacker, attackerEntry })`. `site/js/cards.js:274-285` builds the trigger button with `data-action="tohit"`.
+- **Tooltip system:** `site/js/tooltips.js` (`initTooltips(doc)` scans `[data-tip]` and attaches hover/touch listeners). `addTip(el, text)` is the writer from `cards.js:136`. The wizard must keep using `data-tip` on letter boxes (and any new step indicators) so the existing scanner picks them up.
+
+### 1.2 What the current dialog actually does (verified by reading)
+
+- Five letter rows (S/A/T/O/R) stacked in a single scrollable panel (`dialog.js:51-122`).
+- **S:** static `sator-skill-value` text (read-only).
+- **A:** radio pills for `standstill | ground | jump` (`dialog.js:65-78`).
+- **T:** native `<select id="sator-target-mode">` for movement mode, radio pills for TMM 0–5, and a jets stepper (−3..+2) shown only when mode is `jump` or `submersible` (`dialog.js:79-117`).
+- **O:** no controls yet (spec-only).
+- **R:** TN, breakdown string, probability, note.
+- Recompute (`dialog.js:140-167`) is a single closure that reads from the DOM, calls `attackerMoveMod` / `targetMoveMod` / `hitProbability`, and writes back to the TN/breakdown/prob nodes.
+- Close paths: `Escape` (added on `doc` in `open`, removed in `closeNow` only — see smell #3 below), backdrop click, `✕` button. All three funnel into `closeNow` which sets `hidden = true`, removes the Esc listener, and restores `__returnFocus`.
+
+### 1.3 Smells the rewrite should fix
+
+| # | Smell | Where | Risk | Fix in new module |
+|---|-------|-------|------|-------------------|
+| 1 | Recompute queries the DOM by `name=`/`id=` and re-parses every change | `dialog.js:140-167` | Brittle to renames; not testable without a DOM | Hold state in a plain object; recompute reads the state object only |
+| 2 | `__open`, `__escHandler`, `__returnFocus`, `__asSatorDialog` stashed on DOM nodes | `dialog.js:174, 196, 199, 221` | Invisible to tests, garbage-collected with the node, easy to leak | Module-private closure state per `ensure(doc)` |
+| 3 | `escHandler` is added on `open` but only removed in `closeNow`; the exported `closeSatorDialog` has a parallel body that does not call `closeNow` | `dialog.js:181-186, 197-201, 223-228` | Double open → two Esc listeners; closing via the exported function skips focus restore in one path | Single `close()` internal function; both public `closeSatorDialog` and `Esc` handler call it |
+| 4 | O ("Other") is spec'd but unimplemented | tests reference it not at all, current code skips the section | Spec drift | Build the wizard with O as a real step (even if v1 leaves it as an empty "future" step) |
+| 5 | Focus on open picks the first focusable in DOM order, which on first paint is a TMM radio if user scrolled or a stepper button — not a predictable field | `dialog.js:189-191` | Screen-reader users land unpredictably | Per-step focus target: first input in the active step |
+| 6 | Initial focus query uses `querySelector("input, select, button:not(.sator-close)")` and silently no-ops if no match | `dialog.js:189-191` | If the visible step has no inputs, focus stays on body | Wizard has a designated `focusable` per step |
+| 7 | The jets `min`/`max` attributes are declared but not enforced — clamping lives in the stepper `step()` only, so a user who edits the number directly can write `5` and the recompute still runs | `dialog.js:95-101, 199-208` | Out-of-range inputs silently used in math | Either enforce `change`/`blur` clamp, or document that the value is clamped only via stepper |
+| 8 | `__returnFocus?.focus?.()` — fine, but the only thing that sets it is `openSatorDialog`, and `closeSatorDialog` (the exported one) restores it; the *internal* `closeNow` also restores it. Two paths, one truth, easy to break. | `dialog.js:184, 199, 226` | See #3 | One `close()` function |
+| 9 | `aria-modal="true"` is set on the overlay but focus is not trapped; Tab can walk into the page behind the dialog | `dialog.js:26` | Keyboard a11y | Wizard traps focus within active step + Back/Next |
+| 10 | `aria-labelledby="sator-title"` is correct, but the S/A/T/O/R letter boxes have no `aria-label` and rely entirely on `data-tip` for explanation | `dialog.js:56-60` | Tooltips are not exposed to screen readers unless the tooltip system re-surfaces them | Add `aria-label` to each letter box, redundant with `data-tip` |
+
+---
+
+## 2. Module layout
 
 ```
-site/js/sator.js        — pure, no DOM, no globals. The SATOR formula + helpers.
-site/js/dialog.js       — DOM: renderSatorDialog(), openSatorDialog({...}), closeSatorDialog().
+site/js/
+  sator.js               (untouched — pure math)
+  sator-wizard.js        (NEW — wizard module, default export object {ensure, open, close, next, back, goto, getState, recompute})
+  dialog.js              (REWRITTEN — re-exports from sator-wizard for back-compat; keeps ensureSatorDialog, openSatorDialog, closeSatorDialog names)
+
+tests/
+  sator.test.js          (untouched)
+  dialog.test.js         (kept for one release; tests the shim; many assertions migrate to sator-wizard.test.js)
+  sator-wizard.test.js   (NEW — wizard behavior)
 ```
 
-#### `site/js/sator.js` — pure
-
-Exports:
-
-- `RANGE_BANDS = ["S", "M", "L"]` (or similar constant — defer to math consult)
-- `rangeModifier(band) -> number` (e.g. S=0, M=+2, L=+4 — also visible in `cards.js:302-305` damage-row tip labels)
-- `sizeModifier(attackerSize, targetSize) -> number` (table from ASCE; math consult owns the numbers)
-- `movementModifier(attackerTmm, targetMoved) -> number`
-- `attackerToHit({ attacker, attackerSkill, attackerTmm, target, targetSize, rangeBand, otherModifiers }) -> { tn: number, breakdown: Array<{label, value}> }`
-
-Why pure and in its own file:
-- It is fully testable in `node:test` with no JSDOM (this is the codebase's most-established pattern; see `tests/state.test.js` for parallel).
-- `cards.js` and `app.js` will both consume it (the damage-row labels reference S/M/L modifiers; future "preview TN" badges on hover would also reuse this). It belongs in a "rules" layer, not a "DOM" layer.
-- The existing module split already has `state.js` (mutators) and `search.js` (queries) as pure modules. `sator.js` slots in next to them.
-- Keep it small enough to hold in context: probably <150 lines including the modifier table.
-
-The function signature should return a `breakdown` array so the dialog can render the math step-by-step (e.g. `Skill 4 + size +2 + range +2 = TN 8`). The dialog does not need to recompute anything.
-
-#### `site/js/dialog.js` — DOM
-
-Exports:
-
-- `renderSatorDialog()` — returns a fresh detached `<div class="sator-overlay" hidden>...` element. No `document.body.appendChild` side effect. (Mirrors how `cards.js:249` `renderCard` returns a detached `DocumentFragment`-equivalent element the caller inserts.)
-- `openSatorDialog({ doc, overlay, attacker, attackerEntry, target, targetEntry, rangeBand, otherModifiers })` — fills in fields, shows the overlay, focuses the first input, traps focus (defer focus trap decision — see §6).
-- `closeSatorDialog(doc, overlay)` — hides the overlay, restores focus to the triggering card button.
-- Internal: an `__asSatorDialog` idempotency flag on `doc` so a stray second `initSatorDialog(doc)` call is a no-op (mirrors `tooltips.js:2-3`).
-
-Idempotency follows the `__asTooltips` precedent so a future second `init()` call (e.g. in a test) doesn't double-bind `keydown`/`click` listeners on `document`. Tests already rely on the same idempotency property in `tooltips.js`.
-
-`dialog.js` imports `attackerToHit` from `./sator.js` to drive live recompute as the user toggles fields — but the math still lives in the pure module, not in the dialog.
-
-#### Why a separate `dialog.js` and not putting the dialog in `app.js`
-
-`app.js` is 405 lines and is already the busiest file in the repo. Putting a 100–150-line dialog module in there would push it past the point where a reader can hold it in context — exactly the "file grew too large" signal called out by the brainstorming skill. `cards.js` is the wrong home because it deals with card chrome, not transient modals. A new `dialog.js` keeps each module focused.
-
----
-
-## 3. Card button integration — how `renderCard` adds "To-Hit" without breaking delegation
-
-### The current pattern (don't break it)
-
-- Card root: `<article class="card" data-unit-id="…" data-entry-id="…">` (`cards.js:250-253`).
-- Existing chrome uses `data-action` strings as delegation tokens: `"remove"`, `"armor"`, `"struct"`, `"set-skill"` (`app.js:235-273`).
-- `app.js:228-273` is a single `click` listener on `#roster`. It branches on `e.target.dataset.action` and bails on unknown actions — so any new action string can be added without touching the existing branches.
-
-### Add a fourth "To-Hit" action
-
-In `cards.js` `renderCard` (alongside the existing `remove` button at `cards.js:267-272`), add a button:
+### 2.1 `sator-wizard.js` shape
 
 ```js
-const toHit = document.createElement("button");
-toHit.type = "button";
-toHit.className = "card-tohit";
-toHit.dataset.action = "tohit";
-toHit.setAttribute("aria-label", "Open to-hit calculator");
-toHit.textContent = "To-Hit";
-addTip(toHit, "Open the to-hit calculator with this unit as the attacker");
-head.append(title, variant, pv, toHit, remove);
+// sator-wizard.js — pure JS, no globals; doc passed in for every call
+import { hitProbability, attackerMoveMod, targetMoveMod, targetUsesTmm } from "./sator.js";
+
+const STEPS = ["skill", "attacker", "target", "other", "roll"];  // S/A/T/O/R
+
+export function ensureSatorWizard(doc) { /* idempotent, returns root element */ }
+export function openSatorWizard({ doc, attacker, attackerEntry }) { /* focus, return-target */ }
+export function closeSatorWizard(doc) { /* hide, restore focus, remove Esc */ }
+export function nextSatorStep(doc) { /* advance */ }
+export function backSatorStep(doc) { /* retreat */ }
+export function gotoSatorStep(doc, step) { /* jump, used by tests + breadcrumb */ }
+export function getSatorState(doc) { /* { step, attacker, entry, values, tn, breakdown, prob, cannotAttack, reason } */ }
 ```
 
-Place the button to the **left of `remove`** in the head. Order is `head.append(title, variant, pv, toHit, remove)` so visually it appears next to the existing PV badge.
-
-In `app.js` `roster` click delegation (`app.js:230-273`), add a new branch **before** the closing `}` of the `if (card) { … }` block:
+`dialog.js` becomes a 6-line shim:
 
 ```js
-if (e.target.dataset.action === "tohit") {
-  openSatorDialog({ doc, attacker: unit, attackerEntry: entry, target: null /* prefill only — see §4 */, rangeBand: "M" });
-  return;
+export { ensureSatorWizard as ensureSatorDialog } from "./sator-wizard.js";
+export const openSatorDialog = (args) => openSatorWizard(args);
+export const closeSatorDialog = (doc) => closeSatorWizard(doc);
+```
+
+`app.js` does not need to change.
+
+### 2.2 Why a new module instead of rewriting `dialog.js`
+
+- The wizard's API is fundamentally different: `next`/`back`/`goto` make no sense for a single-page modal. Adding them to `dialog.js` is feature creep; rewriting it under the same name forces a synchronized edit across 16 tests that use the old `data-tip` strings, the old `aria-modal`, the old `hidden` toggle.
+- A new module is a clean cut. `dialog.js` becomes a one-line shim and can be deleted in a later PR after the migration of `dialog.test.js` is complete.
+- The shim approach lets us keep `tests/dialog.test.js` running unmodified for the *public* surface tests (idempotent, hidden, 5 letters, tooltips, open prefills, focus restore, Esc closes, backdrop closes, close button). The internal behavior tests (recompute, conditional reveals, stepper math) move to `sator-wizard.test.js`.
+
+---
+
+## 3. State model
+
+### 3.1 Single state object, owned per overlay
+
+```js
+// private to the ensure() closure
+const state = {
+  step: 0,                            // 0..4; 0 = S, 4 = R
+  stepCount: STEPS.length,            // 5
+  attacker: null,                     // unit record
+  attackerEntry: null,                // entry record
+  values: {
+    atkMove: "ground",                // standstill | ground | jump
+    tgtMode: "ground",                // one of TARGET_MODES
+    tmm: 0,                           // 0..5
+    jets: 0,                          // -3..2
+    // future O step: array of named modifiers
+  },
+  tn: null,                           // number | null when cannotAttack
+  breakdown: [],                      // [{label, value}]
+  prob: 0,                            // 0..1
+  cannotAttack: false,
+  reason: "",
+  returnFocus: null,                  // Element to restore on close
+};
+```
+
+### 3.2 Recompute (single function, no DOM reads)
+
+```js
+function recompute(state) {
+  if (isDestroyed(state.attackerEntry, state.attacker)) {
+    state.cannotAttack = true; state.reason = "Unit destroyed"; state.tn = null; return;
+  }
+  if (state.attackerEntry.heat === "S") {
+    state.cannotAttack = true; state.reason = "Unit is shut down"; state.tn = null; return;
+  }
+  state.cannotAttack = false;
+  const skill = state.attackerEntry.skill;
+  const move = attackerMoveMod(state.values.atkMove);
+  const tgtMode = state.values.tgtMode;
+  const jets = state.values.jets;
+  const tmm = targetUsesTmm(tgtMode) ? state.values.tmm : 0;
+  const tgt = targetMoveMod(tgtMode, tmm, jets);
+  const tn = Math.max(2, skill + move + tgt);
+  state.tn = tn;
+  state.breakdown = [];
+  state.breakdown.push({ label: "Skill", value: skill });
+  if (move !== 0) state.breakdown.push({ label: "Move", value: move });
+  if (tgt !== 0) state.breakdown.push({ label: "Target", value: tgt });
+  state.prob = tn > 12 ? 0.028 : hitProbability(tn);
 }
 ```
 
-This is additive — no existing action string changes, no existing branch's logic changes. The `return;` keeps it from falling through to the `crit` handler.
+### 3.3 Why no `getElementById` inside recompute
 
-### Conflict check
+- Recompute becomes a pure function over `state`. It can be unit-tested in isolation by passing a fabricated `state`.
+- The DOM only receives the *result* via a single `render(state)` step that writes to text nodes and toggles `hidden`. This collapses the current 8 `dialog.querySelector(...)` calls into one render call.
+- The wizard's `O` step (future) only has to add fields to `state.values`; the recompute ignores anything outside its known fields, so the O step's UI can be a placeholder without breaking math.
 
-- `"tohit"` does not collide with any existing `data-action` value (`remove`, `armor`, `struct`, `set-skill`, `delete-group`).
-- `addTip(toHit, …)` reuses the existing tooltip system — no new tooltip module needed.
-- The button is inside the `<article class="card">`, so the existing `e.target.closest(".card")` lookup still finds the entry id.
+### 3.4 Per-step value validation
 
-### What goes in the head vs the body
-
-`cards.js` puts all chrome controls in `head` (title, variant, PV, remove). The new button is a chrome control → head. Putting it in the body would force the delegation handler to look in a different DOM subtree and break the pattern.
+Each step has a `validate(state) → string | null` returning an error message or `null` if the step can advance. For v1 only the `R` step needs it (the breakdown must be present, but it's always computed, so it always validates). Future `O` step with required picks would use this.
 
 ---
 
-## 4. Dialog DOM: static skeleton or JS-injected?
+## 4. Event flow
 
-### Recommendation: injected by `dialog.js`, not in `index.html`
+### 4.1 Lifecycle
 
-Two precedents in the repo:
+```
+ensure(doc)        →  construct overlay + 5 steps (only one visible), wire listeners, return overlay
+open({...})        →  capture returnFocus, reset state, set attacker/entry, recompute, render, show overlay, focus first input of step 0, add Esc + focus-trap listeners
+user input on step →  update state.values, recompute, render, re-announce TN
+next()             →  if step < last: step++, render(step), focus first input of new step
+back()             →  if step > 0: step--, render(step), focus first input of new step
+goto(step)         →  if 0 ≤ step < stepCount: step = step, render(step)
+close()            →  if hidden already: return; hide overlay, remove Esc + focus-trap, restore returnFocus.focus()
+```
 
-| Element | Where defined | Why |
-|---|---|---|
-| `<header>`, `<section id="picker">`, `<main id="roster">` | `index.html` | Always present, never duplicated. Skeleton. |
-| `<div class="tooltip-float">` (`tooltips.js:7-9`) | Injected by JS | Always 0 or 1, lifecycle owned by the module. |
-| `<li class="picker-hint">`, `<li class="picker-empty">` (`app.js:99-126`) | Injected by JS | Conditional, lives only when the picker is in that state. |
-| `STORAGE_KEY` in `storage.js:3` (no UI but parallel pattern) | JS constant | Single source of truth. |
-
-The SATOR dialog has the same shape as the tooltip: exactly zero or one instance, lifecycle owned by the feature, never seen by users who never click the button. **Inject it.** The alternative — a static `<dialog id="sator-dialog" hidden>` in `index.html` — would be the only interactive element in `index.html` that lives behind a feature gate, and would force `index.html` to know the dialog's structure (against the existing separation).
-
-### Lifecycle in `dialog.js`
+### 4.2 Wiring (event delegation on dialog)
 
 ```js
-export function ensureSatorDialog(doc) {
-  if (doc.__asSatorDialog) return doc.__asSatorDialog;
-  const overlay = renderSatorDialog();   // detached
-  doc.body.appendChild(overlay);
-  bindSatorDialogEvents(doc, overlay);
-  doc.__asSatorDialog = overlay;
-  return overlay;
-}
+dialog.addEventListener("change", e => onFieldChange(e));
+dialog.addEventListener("input",  e => onFieldChange(e));
+dialog.addEventListener("click",  e => onClick(e));
 ```
 
-`app.js:162` already calls `initTooltips(doc)` once at boot. Add the same one-liner: `ensureSatorDialog(doc)`. (Rename to `initSatorDialog(doc)` to match the `initTooltips` precedent, or keep `ensure` — minor.)
+`onFieldChange` dispatches by `e.target.dataset.field`:
 
-`renderSatorDialog` returns the overlay; the function takes `doc` so it can use `doc.createElement` (mirroring `cards.js:250` which assumes the global `document` exists; passing `doc` is better because the codebase already passes `doc` to `init` for testability — see `app.js:159` and `app.js:227` using `_doc`).
+- `data-field="atkMove"` → `state.values.atkMove = e.target.value`
+- `data-field="tgtMode"` → `state.values.tgtMode = e.target.value`
+- `data-field="tmm"` → `state.values.tmm = Number(e.target.value)`
+- `data-field="jets"` → clamp to [-3, 2] on blur; on `input` accept raw, on `change` (Enter/blur) clamp
+- `data-field="jets-delta"` → add ±1, clamp, write back
 
-### Prefill from unit data
+`onClick` dispatches by `e.target.dataset.action`:
 
-The dialog has two roles: "attacker" (the unit whose card was clicked) and "target" (the unit being attacked, picked from the roster). The button is on a card, so the **attacker is the unit whose card was clicked** — already known at click time:
+- `data-action="next"` → `nextSatorStep(doc)`
+- `data-action="back"` → `backSatorStep(doc)`
+- `data-action="close"` → `closeSatorWizard(doc)`
+- `data-action="step-jump"` (used by progress bar) → `gotoSatorStep(doc, Number(e.target.dataset.step))`
 
-```js
-if (e.target.dataset.action === "tohit") {
-  const card = e.target.closest(".card");
-  const entryId = card.dataset.entryId;
-  const entry = _state.roster.find(e => e.id === entryId);
-  const unit = _unitById.get(entry.unitId);
-  ensureSatorDialog(_doc);
-  openSatorDialog({ doc: _doc, attacker: unit, attackerEntry: entry });
-  return;
-}
-```
+### 4.3 Conditional reveals (T-step sub-UI)
 
-The dialog form needs a **target picker** — a `<select>` listing all other units in the roster (excluding the attacker, since a unit doesn't shoot itself). Pulled from `_state.roster` + `_unitById`. This is a read of state, not a write — the calculator doesn't mutate anything.
+- `state.values.tgtMode ∈ {jump, submersible}` → show jets row.
+- `targetUsesTmm(tgtMode)` → show TMM group.
+- Otherwise → hide both.
 
-If the user wants to attack a unit that isn't on the table, the dialog can include a "Custom target" form where they enter target Size and TMM directly. Defer this UX decision to the math/UX consult, but architecturally: a `<select>` of roster units plus a manual override is two text/number inputs and one `<select>`, all inside the dialog. No new module.
+These are pure functions of `state.values`, computed in `render(state)`. Same pattern as the current code but driven by state, not by querying for the select and the radio group.
+
+### 4.4 The jets stepper (no new state)
+
+The stepper stays exactly as it is. `data-field="jets-delta" data-delta="1"` on `+`, `data-delta="-1"` on `−`. The current `dec`/`inc` button wiring at `dialog.js:204-215` becomes a `data-action` delegation.
 
 ---
 
-## 5. State: stateless tool
+## 5. Accessibility
 
-**Recommendation: do not persist anything to `state` or `localStorage`.**
+### 5.1 Step progress
 
-The calculator is a "compute and forget" tool. Closing the dialog discards all values; reopening gives a fresh form pre-populated only with the attacker's unit data. The roster (`_state`) is not touched. The storage layer is not touched. The import/export format is not touched (no schema migration).
+- `<div class="sator-progress" role="navigation" aria-label="SATOR steps">` containing 5 buttons, one per step.
+- Each button: `aria-current="step"` when active, `aria-label="Step {n}: {name}"` always, `data-step` for the click handler.
+- Live region: `<div class="sator-live" aria-live="polite" aria-atomic="true">` placed near the TN. Updated on every `render` with "Step 3 of 5: Target. Target number 6." Screen readers announce on each step change but not on every keystroke inside a step (the live region's `aria-live="polite"` + the fact that we update it only on `render` after a meaningful change — recompute happens on every `input` but the live region only updates on `step` transitions or on commit (`change` for `tgtMode`/`tmm`/`atkMove`, `blur` for `jets`).
 
-Why this is the right call:
-- The `STORAGE_KEY = "as-companion-state-v1"` schema in `storage.js:3` is intentionally small (roster + groups). Adding a `lastSatorInputs` field would bloat every save and every sanitization pass for zero benefit.
-- The user's `lastOpened = 2026-08-13` style field would be dead code — when would you ever restore it?
-- The dialog is a view, not a record. It reads from the same `roster` data the rest of the app reads from.
+### 5.2 Focus management
 
-What the dialog *does* need is the live `roster` snapshot at open time, so the target `<select>` can list current units. That's a read, not a state write — `app.js` passes `_state.roster` to `openSatorDialog` as a parameter; the dialog closes and the reference is dropped.
+- **On open:** focus the first focusable element of the active step (step 0 = skill read-only; skip to step 1's first radio, or to a "Begin" button if we want to gate).
+- **On `next`/`back`/`goto`:** focus the first focusable of the new active step.
+- **Focus trap:** on Tab/Shift+Tab at the boundaries of the dialog, cycle within the dialog. Implemented as a `keydown` handler on `doc` while the overlay is open. The current dialog does *not* trap (smell #9); this is a real bug fix.
+- **Restore on close:** `returnFocus.focus()` (preserved from current).
 
-If a future feature wants "save common attack profiles" (e.g. "frequently used TN modifier stacks"), that's a separate design conversation, not something to pre-bake into the schema. YAGNI applies.
+### 5.3 Esc and backdrop
 
----
+- Single `doc.addEventListener("keydown", onKey)` added on `open`, removed on `close`. Inside `onKey`:
+  - `e.key === "Escape"` → call `close()`.
+  - `e.key === "Tab"` → trap if focus would leave the overlay.
+- Backdrop click: `overlay.addEventListener("click", e => { if (e.target === overlay) close(); })`. Same as current.
 
-## 6. Event wiring: delegation, open/close, and lifecycle
+### 5.4 Letter boxes
 
-### Wire it in `app.js`, not in the dialog module
-
-`dialog.js` should expose `openSatorDialog` / `closeSatorDialog` as pure functions. The click handler that calls them lives in `app.js` next to the existing `data-action === "remove"` branch. This keeps the delegation surface area in one place.
-
-### What `dialog.js` does bind
-
-- One `click` listener on the overlay element to catch backdrop-clicks (close if `e.target === overlay`).
-- One `click` listener on a `.sator-close` button inside the dialog.
-- One `keydown` listener on `document` to handle `Escape` (close).
-- One `input` listener on the dialog root (delegation) to live-recompute `attackerToHit(...)` when range / target / modifier inputs change.
-
-The `keydown` listener is the only one that lives on `document`. It must be added/removed in tandem with the dialog's open/close to avoid the same "listener never torn down" issue called out in `docs/superpowers/consult-audit-r2-claude.md:45` for `initTooltips`. Implementation: `addEventListener` at `openSatorDialog` time, `removeEventListener` at `closeSatorDialog` time. Track the handler in a module-local variable so the close path can pass the same function reference to `removeEventListener`.
-
-### Idempotency
-
-`ensureSatorDialog(doc)` (or `initSatorDialog(doc)`) is called once from `app.init`. The `__asSatorDialog` flag on `doc` prevents a second `init()` (which the test harness does) from creating two dialogs with two `keydown` listeners. The `__asTooltips` pattern in `tooltips.js:2-3` is the exact precedent.
-
-### Focus management
-
-When the dialog opens:
-1. `e.target.closest(".card-tohit")` is the previously-focused element. Stash a reference on the dialog: `overlay.__returnFocus = e.target`.
-2. After `overlay.hidden = false`, call `overlay.querySelector("input, select, button")`.focus().
-
-When the dialog closes:
-1. `overlay.hidden = true`.
-2. `overlay.__returnFocus?.focus()`.
-
-Focus trap (Tab/Shift+Tab cycling inside the dialog) is a nice-to-have but **not required for the first iteration**. Defer to the math/UX consult.
-
-### Open/close API shape
-
-```js
-// in dialog.js
-export function openSatorDialog({ doc, attacker, attackerEntry, target = null }) {
-  const overlay = ensureSatorDialog(doc);
-  fillAttackerSection(overlay, attacker, attackerEntry);
-  fillTargetSection(overlay, target);
-  overlay.hidden = false;
-  // focus, keydown listener
-}
-
-export function closeSatorDialog(doc) {
-  const overlay = doc.__asSatorDialog;
-  if (!overlay) return;
-  overlay.hidden = true;
-  // remove keydown listener, return focus
-}
-```
-
-Both are explicit and testable — `tests/dialog.test.js` can call `openSatorDialog` with a JSDOM and assert `overlay.hidden === false`, then `closeSatorDialog` and assert it flips back. No need to fire a click event to test the open/close path.
-
-### Why not use `<dialog>` and `dialog.showModal()`
-
-- The repo has zero existing modal precedent. The tooltip float is the closest analog and is a plain `<div>`. Matching the precedent keeps the CSS cohesive.
-- `<dialog>` requires browser support testing in JSDOM (it's supported in jsdom ≥ 16 but with `requestClose` quirks). Plain `<div hidden>` + `aria-modal="true"` + `role="dialog"` works identically in jsdom and in browsers.
-- The repo's design language uses `--panel` / `--border` / `--accent` (`styles.css:1-16`); styling a native `<dialog>` to match would mean either overriding browser defaults or accepting a different look. A plain div inherits the existing CSS variables.
+- Keep `class="sator-letter tip"` + `data-tip="…"` so the existing tooltip system continues to work.
+- Add `aria-label="Skill"` etc., redundant with `data-tip` so screen readers that don't run the tooltip JS still get the meaning. (The current implementation only has `data-tip` — smell #10.)
 
 ---
 
-## 7. Testing strategy
+## 6. Test strategy
 
-### Three layers, matching the existing pattern
+### 6.1 Keep `tests/sator.test.js` untouched
 
-#### 7a. `tests/sator.test.js` — pure function tests, no JSDOM
+It tests the pure functions in `sator.js`. The wizard delegates to them. No change needed.
 
-```js
-import test from "node:test";
-import assert from "node:assert/strict";
-import { attackerToHit, rangeModifier, sizeModifier, movementModifier } from "../site/js/sator.js";
+### 6.2 `tests/dialog.test.js` — keep, but expect a small subset to move
 
-test("rangeModifier returns documented S/M/L values", () => {
-  // assertions driven by the math consult
-});
-```
+Tests in this file fall into three groups:
 
-Mirrors `tests/state.test.js`. This is the highest-leverage test layer — covers the formula table, the breakdown array shape, edge cases (size 1 attacking size 4, range L, no movement, etc.). Math consult supplies the fixtures.
+| Group | Tests | Keep here? |
+|-------|-------|------------|
+| Public surface (idempotent, hidden, 5 letters, tooltips) | "ensureSatorDialog is idempotent and hidden", "dialog shows five SATOR letter boxes in order", "letter boxes carry descriptive tooltips" | Yes — these are still the dialog's contract |
+| Open/close lifecycle | "openSatorDialog unhides and prefills attacker skill", "openSatorDialog stores return focus", "closeSatorDialog hides and returns focus", "Escape key closes the dialog", "close button closes the dialog", "backdrop click closes the dialog" | Yes |
+| Internal recompute (TN, breakdown, prob, TMM reveal, jets, jets clamp) | "TN equals skill and probability shows", "attacker movement changes TN live", "min TN clamps at 2 for skill 0", "destroyed attacker shows cannot-attack", "jet stepper buttons adjust the jets value", "jet stepper clamps to data range -3..2" | Migrate to `sator-wizard.test.js` |
 
-#### 7b. `tests/dialog.test.js` — JSDOM, tests the dialog DOM and lifecycle
+After migration, `tests/dialog.test.js` shrinks to the public-surface + open/close tests (~9 tests) and serves as a smoke test that the shim works. `tests/sator-wizard.test.js` becomes the place for behavior tests.
 
-```js
-import { JSDOM } from "jsdom";
-import { openSatorDialog, closeSatorDialog, ensureSatorDialog } from "../site/js/dialog.js";
+### 6.3 `tests/sator-wizard.test.js` (new) — what's in it
 
-const dom = new JSDOM("<!DOCTYPE html><body></body>");
-globalThis.document = dom.window.document;
+- **Step transitions:** open at step 0, click Next, verify step 1 visible and step 0 hidden; back to 0; click progress button to jump.
+- **Per-step value updates:** type into a field, verify `getSatorState(doc).values` reflects the change.
+- **Recompute on input:** change a value, verify `getSatorState(doc).tn` updates.
+- **Focus management:** after open, `document.activeElement` is the expected first input of step 0; after Next, it's the first input of step 1.
+- **Focus trap:** Tab from the last focusable of step 4 wraps to the first focusable of step 0; Shift+Tab wraps backward.
+- **Esc closes:** `Escape` keypress → `hidden === true`, `returnFocus` restored.
+- **Backdrop closes:** click on overlay (not on dialog) → `hidden === true`.
+- **Idempotent ensure:** `ensureSatorWizard(doc) === ensureSatorWizard(doc)`.
+- **Conditional reveals:** set `tgtMode = "jump"` → jets visible, TMM visible; set `tgtMode = "immobile"` → both hidden.
+- **Live region:** after Next from step 0 to step 1, the live region text contains "Step 2 of 5".
+- **Jets stepper:** click `+` increments; click `−` decrements; clamp at +2 and −3.
 
-test("ensureSatorDialog is idempotent", () => {
-  const a = ensureSatorDialog(document);
-  const b = ensureSatorDialog(document);
-  assert.equal(a, b);
-  assert.equal(document.querySelectorAll(".sator-overlay").length, 1);
-});
+### 6.4 JSDOM gotchas to plan for
 
-test("openSatorDialog shows the overlay and pre-fills attacker", () => { /* … */ });
-test("closeSatorDialog hides the overlay and returns focus", () => { /* … */ });
-test("Escape closes the dialog", () => { /* … */ });
-test("backdrop click closes the dialog", () => { /* … */ });
-```
+- JSDOM does not run CSS, so `:has(input:checked)` is not visible. Tests should read `aria-current` / class names, not computed styles.
+- `pretendToBeVisual: true` is already in the test setup (`dialog.test.js:18`) — keep it.
+- `dispatchEvent(new KeyboardEvent(...))` on `document` works for Esc, but Tab events with `key === "Tab"` need `bubbles: true, cancelable: true` for the trap handler to see them.
+- For focus tests, JSDOM follows the same focus rules as real browsers *most* of the time. `el.focus()` on a radio/button works; check `document.activeElement === el`.
 
-Mirrors `tests/cards.test.js` (which also does `new JSDOM()` + `globalThis.document = …` + DOM assertion per test).
+### 6.5 Coverage targets for the rewrite
 
-#### 7c. `tests/app.test.js` additions — end-to-end via the existing `boot()` harness
-
-The existing `boot()` in `tests/app.test.js:18-39` returns `{ document, saved, app }` and is reused across 16 tests. Add a small number of integration tests:
-
-```js
-test("clicking card to-hit button opens the dialog pre-filled with the attacker", async () => {
-  const { document } = await boot();
-  await showSomeUnits();
-  document.querySelector("#picker-list li button").click();
-  const tohit = document.querySelector("#roster .card-tohit");
-  tohit.click();
-  const dialog = document.querySelector(".sator-overlay");
-  assert.equal(dialog.hidden, false);
-  assert.match(dialog.textContent, /ATLAS/);  // attacker pre-filled
-});
-```
-
-This is the same `boot()` pattern, the same `dispatchEvent` style, the same `await settle()`. No new harness.
-
-#### 7d. Don't do
-
-- Don't add a test for the auto-boot path of `app.js` (the `if (!window.__AS_MANUAL__)` branch) — out of scope; the `2026-08-13-coverage-audit` consult already flagged that as a separate work item.
-- Don't unit-test `addTip` — it's already covered transitively by `tests/cards.test.js` and `tests/app.test.js`.
-- Don't add Playwright / browser tests — the repo is jsdom-only. Stay consistent.
-
-### Coverage gate
-
-`package.json:7` already runs `c8` as `test:coverage`. The new modules will be picked up by the existing glob. No `c8` config change needed; if the existing threshold is too low, that's a separate consult.
+- All currently-tested public behaviors must continue to pass.
+- New wizard behaviors (next/back/jump, focus trap, live region) get their own tests.
+- Recompute is now a pure function over `state`; the existing recompute tests can be rewritten to call `recompute(state)` directly without a DOM, but since `recompute` will be a private function (not exported), the wizard test asserts via `getSatorState(doc).tn` instead.
 
 ---
 
-## 8. Summary of files touched
+## 7. Risks and dead-ends in the current implementation
 
-| File | Change | Reason |
-|---|---|---|
-| `site/js/sator.js` | **new** (~100–150L) | Pure SATOR math + breakdown builder. |
-| `site/js/dialog.js` | **new** (~120L) | Overlay render, open/close, focus, keydown, idempotency. |
-| `site/js/app.js` | edit (~10L) | Import `initSatorDialog`, call from `init`, add `data-action === "tohit"` branch in `#roster` click delegation. |
-| `site/js/cards.js` | edit (~10L) | Add `.card-tohit` button in the card head with `data-action="tohit"` and a tooltip. |
-| `site/index.html` | **no change** | Dialog is JS-injected, matching the tooltip precedent. |
-| `site/styles.css` | edit (~60L) | `.sator-overlay`, `.sator-dialog`, `.sator-row`, `.sator-close` — see §9. |
-| `tests/sator.test.js` | **new** | Pure function tests. |
-| `tests/dialog.test.js` | **new** | JSDOM DOM tests. |
-| `tests/app.test.js` | edit (+~30L) | 1–3 end-to-end tests via the existing `boot()`. |
-| `tests/cards.test.js` | edit (+~5L) | One assertion that the new button exists with the right `data-action`. |
-
-No changes to `state.js`, `storage.js`, `search.js`, or `tooltips.js`. No changes to `package.json`. No new dependencies. No new build step.
+1. **Esc handler stacking** (`dialog.js:181-186`). Two `open()` calls in a row add two listeners. The rewrite's `open()` must call `close()` first if the overlay is already open, or guard the `addEventListener` with an "isOpen" flag.
+2. **Duplicate close paths** (`dialog.js:197-201` vs `223-228`). One internal `closeNow`, one exported `closeSatorDialog`, both restoring focus. If the export's body ever drifts, one path will leak a listener. Single `close()` is the fix.
+3. **`open()`'s focus picker** (`dialog.js:189-191`) is the wrong target on most steps. The first focusable in the dialog is the first TMM radio (in the T row), not the first field the user can usefully act on in the active step.
+4. **No focus trap** (smell #9). Tab out the bottom of the dialog and you land in the page behind. ARIA `dialog` with `aria-modal="true"` implies trap; the current implementation breaks that contract.
+5. **O step is spec-only.** The current dialog has 5 letter rows but only 4 are populated (O is empty). A user reading the dialog sees an empty box labeled "O" with a tooltip about "Other — additional situational modifiers". Either implement O or remove the row. The rewrite should ship a placeholder step ("No other modifiers in v1 — coming soon") that matches the wizard's step model.
+6. **Number input is unconstrained on direct edit** (smell #7). The `min`/`max` attributes are present but no `change`/`blur` handler enforces them. A user who types `9` and tabs out will get a recompute that uses 9, then a clamp only on the next stepper click. Either enforce on `change` or document the behavior.
+7. **Stateless dialog and DOM-cached state** (smells #1, #2). Every recompute re-reads the DOM. Moving to a state object is a prerequisite for the wizard's per-step rendering.
+8. **`hitProbability(>12)` is capped at 0.028** (sator.js:71, dialog.js:165 sets `.impossible` class). The wizard's R step should also show "Impossible (TN > 12)" as a note when `tn > 12`, in addition to the `impossible` class. Currently the note is overwritten by the generic "Natural 12 = auto-hit …" line.
+9. **No "Back to picker" focus restore on Esc close.** The `__returnFocus` is captured at `open` time, so on a *subsequent* dialog re-open (e.g., user opens SATOR, closes, opens another card's SATOR), the focus restores to the *previous* SATOR trigger button instead of the new one. The new card's trigger needs to be the active element *before* `open` is called. The current code only checks `doc.activeElement` at the moment of open, which works for the first open but breaks the second. Verify: in `app.js:338-344`, `e.target` (the button just clicked) is the active element at the moment of the click, so the *first* open works. For the second, the previous trigger (which had focus) becomes the return target. Real fix: in `open()`, always set `returnFocus = doc.activeElement` *and* accept an explicit `returnFocus` argument so `app.js` can pass the button it just clicked.
+10. **No `disabled` propagation.** If the attacker becomes destroyed while the dialog is open (e.g., the user is editing crits on a different card in a future feature), the dialog does not re-evaluate `cannotAttack`. The wizard recompute runs only on user input, not on external state changes. For v1 the dialog is modal so this is moot; flag for future.
 
 ---
 
-## 9. CSS sketch (for the implementer — math/UX consult owns the values)
+## 8. Migration order (recommended)
 
-```css
-.sator-overlay {
-  position: fixed; inset: 0;
-  background: rgba(0, 0, 0, 0.6);
-  display: flex; align-items: center; justify-content: center;
-  z-index: 100;
-}
-.sator-overlay[hidden] { display: none; }
-.sator-dialog {
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-top: 3px solid var(--accent);
-  border-radius: 6px;
-  padding: 18px;
-  min-width: 320px; max-width: 480px;
-  color: var(--text);
-}
-.sator-row { display: flex; justify-content: space-between; padding: 4px 0; }
-.sator-row label { color: var(--muted); }
-.sator-close { /* matches .btn in styles.css:96-104 */ }
-.sator-tn { font-family: var(--font-head); color: var(--accent-strong); font-size: 24px; }
-```
-
-Tokens (`--panel`, `--border`, `--accent`, `--accent-strong`, `--muted`, `--text`) already exist at `styles.css:1-16`. The dialog should feel like a panel sliding out of the existing chrome, not a new visual language.
+1. **Write `sator-wizard.js`** as a clean rewrite with state-driven recompute, step rendering, focus trap, live region, conditional reveals.
+2. **Write `tests/sator-wizard.test.js`** with the new behavior tests. Make it pass against `sator-wizard.js` directly.
+3. **Convert `dialog.js` to a shim** that re-exports from `sator-wizard.js`. `app.js` is unchanged.
+4. **Run the full test suite** (`npm test`). All `tests/sator.test.js` and `tests/dialog.test.js` tests should pass. The dialog tests now test the shim.
+5. **Migrate behavior tests** from `tests/dialog.test.js` to `tests/sator-wizard.test.js` and delete them from the old file. After this, `tests/dialog.test.js` is a small smoke test.
+6. **Update `site/styles.css`** with the wizard's new selectors (`.sator-progress`, `.sator-live`, `.sator-step-content` if needed). Keep the existing `.sator-overlay`/`.sator-dialog`/`.sator-section-row` rules; reuse or rename as appropriate. The letter-box styles (`.sator-letter`) carry over directly.
+7. **Manual smoke test** on a real device (touch + keyboard) — verify the Next/Back buttons, focus trap, Esc, backdrop, and per-step focus are all correct. JSDOM can't catch focus-rendering bugs.
+8. **Delete `dialog.js`** in a follow-up PR after one release cycle of the shim.
 
 ---
 
-## 10. Open questions for the math/UX consult
+## 9. Constraints honored
 
-These are deliberately not answered here — they need someone who knows the Alpha Strike rules:
-
-1. **SATOR formula source of truth.** Is the official table the one from ASCE p. 89 (or whichever page), or a community-maintained table? The exact `sizeModifier(s, t)` lookup is the highest-risk piece — getting it wrong means the calculator lies to users during a real game.
-2. **Modifier coverage.** Beyond Skill + Size + Range + Movement + TMM, are Indirect Fire, Heat, ECM, etc. in scope for v1, or is this a "core four" calculator? Defer non-core modifiers behind a "Show advanced" toggle.
-3. **Target picker UX.** Roster-only, or also allow custom (un-rostered) targets? Custom target fields need to live somewhere.
-4. **Live recompute vs. "Calculate" button.** The architecture supports either — `input` listener recomputes on every change, or `click` on a button recomputes once. UX consult decides.
-5. **Unit type / damage-mode interactions.** Aerospace TMM, Infantry platoon sizes, etc. — do they all flow through the same `attackerToHit` function, or do they need separate code paths? The pure-function signature in §2 is one shape; if rules need to branch on `unit.type`, that's a parameter.
-
-Once those five are answered, an implementation plan can be drafted in 15 minutes by lifting the structure from this document and the file-table in §8.
+- **Plain `<div>` overlay, no native `<dialog>`.** The wizard continues to use `role="dialog" aria-modal="true"` on a fixed-position div. The focus trap is hand-rolled in JS, not via `<dialog>.showModal()`.
+- **JSDOM tests.** The wizard is written so its behavior can be asserted through `getSatorState(doc)` (returns a plain object) plus DOM event dispatch. No `Element.prototype.scrollIntoView`, no `IntersectionObserver`, no CSS `:has()` reliance.
+- **Stateless dialog.** The dialog module still caches the overlay on `doc.__asSatorDialog` (or the new `doc.__asSatorWizard`), but no per-attacker state leaks between opens — `open()` resets `state.values` to defaults and re-applies attacker/entry.
+- **Existing tooltip system.** All descriptive text (letter boxes, future step indicators) uses `data-tip` so `initTooltips(doc)` picks them up. No second tooltip system.
+- **Pure `sator.js` unchanged.** Every recompute goes through `attackerMoveMod`, `targetMoveMod`, `targetUsesTmm`, `hitProbability` (and `effectiveTargetTmm` for the O step when it's implemented). The math tests in `tests/sator.test.js` are the contract.
+- **One caller, one open path.** `app.js:343` is the only call site. The new shim is a drop-in.
+- **No new build steps.** Plain ES modules like the rest of the codebase; no transpilation, no bundler.
 
 ---
 
-## 11. What this report does NOT cover
+## 10. Open questions for the implementation consult
 
-- Exact SATOR formula values (math consult).
-- Damage-value display / color coding / "did I hit?" roll (separate calculator, separate design).
-- Mobile / touch interaction specifics beyond what the existing tooltip already does.
-- Telemetry / usage stats.
-- i18n (the repo is English-only — see `index.html`).
+(These are *not* code-shape questions — they belong to UX/math consults. Listed here only so the implementer doesn't stall on them.)
 
-The architectural seam between "rules" and "dialog" is drawn so that a future damage-calculator feature can land in the same `sator.js` or a sibling `damage.js` without re-touching the dialog or the card button.
+- **O step: implement now or stub?** The spec defines it; the current code doesn't. The wizard can ship with an empty step and a "coming soon" note, or with a small set of situational modifier checkboxes (indirect fire, darkness, etc.) — that's a UX call.
+- **Jets direct-edit clamp behavior.** Should the number field clamp on `change` (blur/Enter) or `input` (every keystroke)? `input` makes the stepper buttons feel less responsive; `change` lets the user type "12" briefly. Current code does neither — flag.
+- **R step layout.** Show the full breakdown, the probability, and a "Roll 2d6" button (purely cosmetic, no state change), or keep it read-only as today?
+- **Step indicator on the side vs. top.** Letter rail on the left is a strong SATOR mnemonic. The wizard can keep a vertical letter rail (S/A/T/O/R stacked) with the active letter highlighted, *and* a horizontal progress bar at the top. Both or one?
+- **Persist last-used attacker settings?** Each `open()` resets to defaults; an alternative is to persist `state.values` to localStorage. Out of scope for v1; flag.

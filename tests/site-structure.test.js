@@ -15,6 +15,8 @@ test("index.html contains required UI structure", () => {
   assert.match(html, /stylesheet/i);
   assert.match(html, /styles\.css/);
   assert.match(html, /<ul id="picker-list"[^>]*aria-label="Available units"/);
+  assert.match(html, /class="ref-tables"/, "reference tables section must exist");
+  assert.match(html, /Range Modifiers/, "range table caption must exist");
 });
 
 test("styles.css defines the BattleTech palette", () => {
@@ -28,10 +30,7 @@ test("styles.css defines the BattleTech palette", () => {
   assert.match(css, /overflow-x\s*:\s*auto/);
   assert.match(css, /\.picker-hint\s*\{/);
   assert.match(css, /\.picker-empty\s*\{/);
-  assert.match(css, /\.sator-overlay\s*\{/);
-  assert.match(css, /\.sator-dialog\s*\{/);
-  assert.match(css, /\.sator-radio-group\s*\{/);
-  assert.match(css, /\.card-tohit\s*\{/);
+  assert.match(css, /\.card-remove\.armed\s*\{/);
 });
 
 test("styles.css is responsive for small screens", () => {

@@ -194,29 +194,6 @@ test("renderCard wires data attributes for delegation", () => {
   assert.ok(card.querySelector('.crit-slot[data-crit="weapons"][data-index="0"]'));
 });
 
-test("renderCard adds a To-Hit button with tooltip", () => {
-  const card = render(unit, createEntry(unit));
-  const btn = card.querySelector('.card-tohit[data-action="tohit"]');
-  assert.ok(btn, "to-hit button must exist");
-  assert.equal(btn.textContent, "SATOR");
-  assert.ok(btn.classList.contains("tip"));
-});
-
-test("renderCard disables To-Hit for destroyed units", () => {
-  const entry = { ...createEntry(unit), armorDamage: unit.armor, structDamage: unit.structure };
-  const card = render(unit, entry);
-  const btn = card.querySelector(".card-tohit");
-  assert.equal(btn.disabled, true);
-  assert.equal(btn.getAttribute("aria-disabled"), "true");
-});
-
-test("renderCard disables To-Hit for shutdown units", () => {
-  const entry = { ...createEntry(unit), heat: "S" };
-  const card = render(unit, entry);
-  const btn = card.querySelector(".card-tohit");
-  assert.equal(btn.disabled, true);
-});
-
 test("renderCard shows MP crit effects on TMM and MV in red", () => {
   const entry = { ...createEntry(unit), crits: { ...createEntry(unit).crits, mp: 1 } };
   const card = render(unit, entry);

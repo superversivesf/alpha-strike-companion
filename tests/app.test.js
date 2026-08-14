@@ -598,35 +598,6 @@ test("import rejects oversized files", async () => {
   assert.equal(document.querySelectorAll("#roster .card").length, 0);
 });
 
-test("clicking card To-Hit button opens the dialog prefilled", async () => {
-  const { document } = await boot();
-  showSomeUnits();
-  document.querySelector("#picker-list li button").dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
-  document.querySelector(".card-tohit").dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
-  const overlay = document.querySelector(".sator-overlay");
-  assert.ok(overlay, "sator overlay must exist");
-  assert.equal(overlay.hidden, false);
-  assert.equal(overlay.querySelector(".sator-skill-value").textContent, "4");
-});
-
-test("destroyed unit's To-Hit button is disabled", async () => {
-  const { document } = await boot({ state: { roster: [{ id: "e-dead", unitId: "atlas-as7-d", armorDamage: 10, structDamage: 8, heat: 0, crits: { engine: 0, fireControl: 0, mp: 0, weapons: 0, thruster: 0, fuel: 0, crew: 0 }, skill: 4, skillSet: true }], groups: [] } });
-  const btn = document.querySelector(".card-tohit");
-  assert.ok(btn);
-  assert.equal(btn.disabled, true);
-});
-
-test("Esc closes the dialog", async () => {
-  const { document } = await boot();
-  showSomeUnits();
-  document.querySelector("#picker-list li button").dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
-  document.querySelector(".card-tohit").dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
-  const overlay = document.querySelector(".sator-overlay");
-  assert.equal(overlay.hidden, false);
-  document.dispatchEvent(new window.KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
-  assert.equal(overlay.hidden, true);
-});
-
 test("remove requires two clicks to confirm", async () => {
   const { document, saved } = await boot();
   showSomeUnits();

@@ -7,7 +7,6 @@ import {
   pvForEntry,
 } from "./state.js";
 import { makeStorage } from "./storage.js";
-import { ensureSatorDialog, openSatorDialog } from "./dialog.js";
 
 const SAVE_DEBOUNCE_MS = 0;
 const MAX_IMPORT_BYTES = 5 * 1024 * 1024;
@@ -196,7 +195,6 @@ export async function init({ doc, storage }) {
   _doc = doc;
   _storage = storage;
   initTooltips(doc);
-  ensureSatorDialog(doc);
   const res = await fetch("data/units.json");
   if (!res.ok) throw new Error(`Failed to load units.json: ${res.status}`);
   const payload = await res.json();
@@ -333,14 +331,6 @@ export async function init({ doc, storage }) {
       }
       if (e.target.dataset.crit) {
         updateEntry(entryId, (entry, unit) => toggleCrit(entry, unit, e.target.dataset.crit, Number(e.target.dataset.index)));
-        return;
-      }
-      if (e.target.dataset.action === "tohit") {
-        const entry = _state.roster.find(en => en.id === entryId);
-        if (!entry) return;
-        const unit = _unitById.get(entry.unitId);
-        if (!unit) return;
-        openSatorDialog({ doc: _doc, attacker: unit, attackerEntry: entry });
         return;
       }
       return;
